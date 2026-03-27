@@ -177,12 +177,16 @@ class HeartRateWidget extends StatelessWidget {
 ## Git 브랜치 전략
 
 ```
-main                    # 배포 브랜치 (직접 push 금지)
-├── develop             # 개발 통합 브랜치
-│   ├── feat/auth       # 기능 개발
+main                        # 배포 브랜치 (관리자 외 직접 push 금지)
+├── develop                 # 개발 통합 브랜치
+│   ├── feat/auth           # 기능 구현
 │   ├── feat/biometric
-│   ├── fix/login-bug   # 버그 수정
-│   └── refactor/ui     # 리팩토링
+│   ├── bug/login-crash     # 버그 수정
+│   ├── ui/home-screen      # UI 작업
+│   ├── enhance/chart       # 개선
+│   ├── refactor/api        # 리팩토링
+│   ├── test/biometric      # 테스트
+│   └── docs/setup-guide    # 문서
 ```
 
 ### 브랜치 생성
@@ -192,26 +196,31 @@ git pull origin develop
 git checkout -b feat/기능명
 ```
 
-### 커밋 메시지 규칙
+### 라벨 & 브랜치 & 커밋 규칙
 
-| 타입 | 설명 |
-|---|---|
-| `feat` | 새 기능 추가 |
-| `fix` | 버그 수정 |
-| `refactor` | 코드 리팩토링 |
-| `style` | UI 변경 |
-| `docs` | 문서 수정 |
-| `chore` | 빌드, 패키지 등 기타 |
+| 라벨 | 브랜치 prefix | 커밋 prefix | 설명 |
+|---|---|---|---|
+| `Feat` | `feat/` | `feat:` | 기능 구현 이슈 |
+| `Bug` | `bug/` | `fix:` | 버그 발생/Fix 이슈 |
+| `UI` | `ui/` | `style:` | UI 작업 이슈 |
+| `Enhance` | `enhance/` | `enhance:` | 개선 이슈 |
+| `Refactor` | `refactor/` | `refactor:` | 리팩토링 이슈 |
+| `Test` | `test/` | `test:` | 테스트 이슈 |
+| `Docs` | `docs/` | `docs:` | 문서 이슈 |
 
 ```bash
 git commit -m "feat: 실시간 심박수 화면 구현"
 git commit -m "fix: 로그인 토큰 저장 오류 수정"
+git commit -m "style: 홈 화면 UI 개선"
+git commit -m "docs: API 명세 문서 추가"
 ```
 
-### PR 규칙
+### 이슈 & PR 규칙
+- 작업 시작 전 이슈 생성 후 라벨 부착
+- 브랜치는 이슈 라벨에 맞는 prefix 사용
 - `develop` 브랜치로 PR 생성
 - 최소 1명 코드 리뷰 후 머지
-- PR 제목은 커밋 메시지 규칙 동일하게
+- PR 제목은 커밋 메시지 규칙과 동일하게
 
 ---
 
