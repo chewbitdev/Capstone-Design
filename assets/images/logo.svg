@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F8EF7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2D6FD4;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
+      <stop offset="50%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#2D6FD4" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Shield background -->
+  <path d="M100 18 L170 48 L170 105 C170 145 138 172 100 182 C62 172 30 145 30 105 L30 48 Z"
+        fill="url(#shieldGrad)" filter="url(#shadow)"/>
+
+  <!-- Shield inner highlight -->
+  <path d="M100 28 L160 54 L160 105 C160 140 131 164 100 173 C69 164 40 140 40 105 L40 54 Z"
+        fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+
+  <!-- Heartbeat / ECG line -->
+  <polyline
+    points="42,105 62,105 70,82 78,128 88,75 96,118 104,100 112,100 120,88 128,118 136,105 158,105"
+    fill="none"
+    stroke="url(#pulseGrad)"
+    stroke-width="5"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+</svg>
