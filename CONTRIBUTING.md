@@ -1,123 +1,108 @@
-# iKong 개발 가이드라인
+# Contributing to iKong
 
-## 프로젝트 구조
+<p align="right"><a href="CONTRIBUTING.ko.md">한국어</a></p>
+
+## Project Structure
 
 ```
 lib/
-├── main.dart                   # 앱 진입점
-├── app.dart                    # MaterialApp, 라우터 설정
+├── main.dart                   # App entry point
+├── app.dart                    # MaterialApp, router setup
 │
-├── core/                       # 전역 공통 모듈 (변경 최소화)
-│   ├── constants/              # 앱 상수, API 주소, 키값
-│   ├── errors/                 # 예외 / 실패 클래스
-│   ├── network/                # Dio 클라이언트, 인터셉터, WebSocket
-│   ├── services/               # 위치, 알림, 로컬저장소, 백그라운드
-│   ├── router/                 # go_router 라우트 정의
-│   └── utils/                  # 날짜 포맷, 유효성 검사 등 유틸
+├── core/                       # Global shared modules (minimize changes)
+│   ├── constants/              # App constants, API URLs, key values
+│   ├── errors/                 # Exception / failure classes
+│   ├── network/                # Dio client, interceptors, WebSocket
+│   ├── services/               # Location, notification, local storage, background
+│   ├── router/                 # go_router route definitions
+│   └── utils/                  # Date formatter, validators, utilities
 │
-├── features/                   # 기능별 모듈 (주요 개발 영역)
-│   ├── auth/                   # 로그인 / 회원가입
-│   ├── profile/                # 프로필 / 내 정보
-│   ├── biometric/              # 실시간 생체 정보 (심박수, 호흡수)
-│   ├── health_record/          # 건강 기록 / 통계 그래프
-│   ├── emergency/              # 긴급 호출 (119, 보호자)
-│   ├── fall_detection/         # 낙상 감지
-│   ├── guardian/               # 보호자 등록 / 관리
-│   ├── activity/               # 활동량 모니터링
-│   ├── report/                 # 건강 리포트 / AI 분석
-│   ├── notification/           # 알림 목록
-│   └── settings/               # 앱 설정
+├── features/                   # Feature modules (main development area)
+│   ├── auth/                   # Login / Sign up
+│   ├── profile/                # Profile / My info
+│   ├── biometric/              # Real-time biometric (heart rate, breathing)
+│   ├── health_record/          # Health records / statistics charts
+│   ├── emergency/              # Emergency call (119, guardian)
+│   ├── fall_detection/         # Fall detection
+│   ├── guardian/               # Guardian registration / management
+│   ├── activity/               # Activity monitoring
+│   ├── report/                 # Health report / AI analysis
+│   ├── notification/           # Notification list
+│   └── settings/               # App settings
 │
-└── shared/                     # 공용 UI 컴포넌트
-    ├── widgets/                # 재사용 위젯
-    ├── theme/                  # 색상, 폰트, 테마
-    └── extensions/             # Dart 확장 함수
+└── shared/                     # Shared UI components
+    ├── widgets/                # Reusable widgets
+    ├── theme/                  # Colors, fonts, theme
+    └── extensions/             # Dart extension functions
 ```
 
 ---
 
-## Clean Architecture 레이어 구조
+## Clean Architecture Layer Structure
 
-각 feature는 반드시 아래 3개 레이어로 구성합니다.
+Each feature must be composed of the following 3 layers.
 
 ```
 feature/
-├── data/               # 외부 데이터 (API, 로컬 DB)
-│   ├── datasources/    # API 호출 / SharedPreferences 읽기
-│   ├── models/         # JSON 직렬화 모델 (fromJson / toJson)
-│   └── repositories/   # Repository 구현체
+├── data/               # External data (API, local DB)
+│   ├── datasources/    # API calls / SharedPreferences
+│   ├── models/         # JSON serialization models (fromJson / toJson)
+│   └── repositories/   # Repository implementation
 │
-├── domain/             # 비즈니스 로직 (순수 Dart, 의존성 없음)
-│   ├── entities/       # 순수 데이터 클래스
-│   ├── repositories/   # Repository 추상 인터페이스
-│   └── usecases/       # 단일 기능 비즈니스 로직
+├── domain/             # Business logic (pure Dart, no external dependencies)
+│   ├── entities/       # Pure data classes
+│   ├── repositories/   # Repository abstract interfaces
+│   └── usecases/       # Single-responsibility business logic
 │
 └── presentation/       # UI
-    ├── pages/          # 화면 단위
-    ├── widgets/        # 해당 feature 전용 위젯
+    ├── pages/          # Screen units
+    ├── widgets/        # Feature-specific widgets
     └── providers/      # Riverpod Provider / State
 ```
 
-### 레이어 간 의존성 규칙
+### Layer Dependency Rules
 
 ```
 presentation → domain ← data
 ```
 
-- `presentation`은 `domain`만 참조
-- `data`는 `domain`만 참조
-- `domain`은 외부 의존성 없음 (Flutter, Dio 등 import 금지)
-- 레이어를 건너뛴 직접 참조 금지
+- `presentation` references only `domain`
+- `data` references only `domain`
+- `domain` has no external dependencies (no Flutter, Dio imports)
+- Cross-layer direct references are prohibited
 
 ---
 
-## 네이티브 기능 개발 위치
+## Native Feature Development
 
-Flutter `lib/`에서 처리할 수 없는 플랫폼별 설정은 아래 위치에서 수정합니다.
+Platform-specific settings that cannot be handled in Flutter `lib/` should be modified at the following locations.
 
 ### Android — `android/`
 
-| 작업 | 파일 위치 |
+| Task | File Location |
 |---|---|
-| 권한 추가 (카메라, 위치, 알림 등) | `android/app/src/main/AndroidManifest.xml` |
-| 최소 SDK 버전 변경 | `android/app/build.gradle.kts` |
-| Firebase 연동 | `android/app/google-services.json` (직접 추가) |
-| 앱 아이콘 변경 | `android/app/src/main/res/mipmap-*/` |
-| 백그라운드 서비스 | `android/app/src/main/kotlin/com/capstone/ikong/` |
+| Add permissions (camera, location, notification, etc.) | `android/app/src/main/AndroidManifest.xml` |
+| Change minimum SDK version | `android/app/build.gradle.kts` |
+| Firebase integration | `android/app/google-services.json` (add manually) |
+| Change app icon | `android/app/src/main/res/mipmap-*/` |
+| Background service | `android/app/src/main/kotlin/com/capstone/ikong/` |
 
 ### iOS — `ios/`
 
-| 작업 | 파일 위치 |
+| Task | File Location |
 |---|---|
-| 권한 추가 (카메라, 위치, 알림 등) | `ios/Runner/Info.plist` |
-| Firebase 연동 | `ios/Runner/GoogleService-Info.plist` (직접 추가) |
-| 앱 아이콘 변경 | `ios/Runner/Assets.xcassets/AppIcon.appiconset/` |
-| 배포 타겟 버전 변경 | `ios/Podfile` |
-| 네이티브 코드 | `ios/Runner/` (Swift) |
-
-### 공통 권한 추가 예시
-
-**Android** `AndroidManifest.xml`
-```xml
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-<uses-permission android:name="android.permission.CAMERA"/>
-<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-```
-
-**iOS** `Info.plist`
-```xml
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>응급 상황 시 위치 정보를 전송합니다.</string>
-<key>NSCameraUsageDescription</key>
-<string>프로필 사진 등록에 사용됩니다.</string>
-```
+| Add permissions (camera, location, notification, etc.) | `ios/Runner/Info.plist` |
+| Firebase integration | `ios/Runner/GoogleService-Info.plist` (add manually) |
+| Change app icon | `ios/Runner/Assets.xcassets/AppIcon.appiconset/` |
+| Change deployment target version | `ios/Podfile` |
+| Native code | `ios/Runner/` (Swift) |
 
 ---
 
-## 상태관리 — Riverpod
+## State Management — Riverpod
 
 ```dart
-// Provider 정의 (providers/ 폴더)
+// Provider definition (providers/ folder)
 @riverpod
 class HeartRateNotifier extends _$HeartRateNotifier {
   @override
@@ -126,41 +111,41 @@ class HeartRateNotifier extends _$HeartRateNotifier {
   void update(int value) => state = value;
 }
 
-// UI에서 사용
+// Usage in UI
 final heartRate = ref.watch(heartRateNotifierProvider);
 ```
 
-- `@riverpod` 어노테이션 사용 (riverpod_generator)
-- 코드 생성: `dart run build_runner build`
+- Use `@riverpod` annotation (riverpod_generator)
+- Code generation: `dart run build_runner build`
 
 ---
 
-## 네트워크 — Dio
+## Network — Dio
 
 ```dart
-// core/network/api_client.dart 에서 싱글톤으로 관리
-// datasource에서만 사용, presentation에서 직접 호출 금지
+// Managed as singleton in core/network/api_client.dart
+// Use only in datasource, never call directly from presentation
 
 final response = await _apiClient.get('/health/heart-rate');
 ```
 
 ---
 
-## 코딩 컨벤션
+## Coding Conventions
 
-### 파일명
-- 소문자 + 언더스코어: `heart_rate_widget.dart`
+### File Names
+- Lowercase + underscore: `heart_rate_widget.dart`
 
-### 클래스명
-- 파스칼케이스: `HeartRateWidget`
+### Class Names
+- PascalCase: `HeartRateWidget`
 
-### 변수 / 함수명
-- 카멜케이스: `heartRate`, `getHeartRate()`
+### Variable / Function Names
+- camelCase: `heartRate`, `getHeartRate()`
 
-### 상수
-- 카멜케이스: `AppConstants.heartRateMax`
+### Constants
+- camelCase: `AppConstants.heartRateMax`
 
-### 위젯 구조
+### Widget Structure
 ```dart
 class HeartRateWidget extends StatelessWidget {
   const HeartRateWidget({super.key});
@@ -174,63 +159,63 @@ class HeartRateWidget extends StatelessWidget {
 
 ---
 
-## Git 브랜치 전략
+## Git Branch Strategy
 
 ```
-main                        # 배포 브랜치 (관리자 외 직접 push 금지)
-├── develop                 # 개발 통합 브랜치
-│   ├── feat/auth           # 기능 구현
+main                        # Production branch (direct push restricted)
+├── develop                 # Development integration branch
+│   ├── feat/auth           # Feature implementation
 │   ├── feat/biometric
-│   ├── bug/login-crash     # 버그 수정
-│   ├── ui/home-screen      # UI 작업
-│   ├── enhance/chart       # 개선
-│   ├── refactor/api        # 리팩토링
-│   ├── test/biometric      # 테스트
-│   └── docs/setup-guide    # 문서
+│   ├── bug/login-crash     # Bug fix
+│   ├── ui/home-screen      # UI work
+│   ├── enhance/chart       # Enhancement
+│   ├── refactor/api        # Refactoring
+│   ├── test/biometric      # Testing
+│   └── docs/setup-guide    # Documentation
 ```
 
-### 브랜치 생성
+### Create a Branch
 ```bash
 git checkout develop
 git pull origin develop
-git checkout -b feat/기능명
+git checkout -b feat/feature-name
 ```
 
-### 라벨 & 브랜치 & 커밋 규칙
+### Label & Branch & Commit Rules
 
-| 라벨 | 브랜치 prefix | 커밋 prefix | 설명 |
+| Label | Branch Prefix | Commit Prefix | Description |
 |---|---|---|---|
-| `Feat` | `feat/` | `feat:` | 기능 구현 이슈 |
-| `Bug` | `bug/` | `fix:` | 버그 발생/Fix 이슈 |
-| `UI` | `ui/` | `style:` | UI 작업 이슈 |
-| `Enhance` | `enhance/` | `enhance:` | 개선 이슈 |
-| `Refactor` | `refactor/` | `refactor:` | 리팩토링 이슈 |
-| `Test` | `test/` | `test:` | 테스트 이슈 |
-| `Docs` | `docs/` | `docs:` | 문서 이슈 |
+| `Feat` | `feat/` | `feat:` | Feature implementation |
+| `Bug` | `bug/` | `fix:` | Bug report / fix |
+| `UI` | `ui/` | `style:` | UI work |
+| `Enhance` | `enhance/` | `enhance:` | Enhancement |
+| `Refactor` | `refactor/` | `refactor:` | Refactoring |
+| `Test` | `test/` | `test:` | Testing |
+| `Docs` | `docs/` | `docs:` | Documentation |
 
 ```bash
-git commit -m "feat: 실시간 심박수 화면 구현"
-git commit -m "fix: 로그인 토큰 저장 오류 수정"
-git commit -m "style: 홈 화면 UI 개선"
-git commit -m "docs: API 명세 문서 추가"
+git commit -m "feat: implement real-time heart rate screen"
+git commit -m "fix: resolve login token storage bug"
+git commit -m "style: improve home screen UI"
+git commit -m "docs: add API specification document"
 ```
 
-### 이슈 & PR 규칙
-- 작업 시작 전 이슈 생성 후 라벨 부착
-- 브랜치는 이슈 라벨에 맞는 prefix 사용
-- `develop` 브랜치로 PR 생성
-- 최소 1명 코드 리뷰 후 머지
-- PR 제목은 커밋 메시지 규칙과 동일하게
+### Issue & PR Rules
+- Create an issue before starting work and attach the appropriate label
+- Use the branch prefix matching the issue label
+- Create PR targeting `develop` branch
+- Merge after at least 1 code review approval
+- PR title follows the same commit message convention
 
 ---
 
-## 패키지 추가 시
+## Adding Packages
 
-1. `pubspec.yaml`에 추가
-2. `flutter pub get` 실행
-3. 팀원에게 공유 (pubspec.yaml 커밋)
+1. Add to `pubspec.yaml`
+2. Run `flutter pub get`
+3. Commit and share with the team
 
 ```bash
 git add pubspec.yaml pubspec.lock
-git commit -m "chore: 패키지명 패키지 추가"
+git commit -m "chore: add [package-name] package"
 ```

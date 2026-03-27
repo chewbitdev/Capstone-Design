@@ -3,32 +3,38 @@
 [![Flutter](https://img.shields.io/badge/Flutter-3.41.5-02569B?style=flat-square&logo=flutter&logoColor=white)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-3.11.3-0175C2?style=flat-square&logo=dart&logoColor=white)](https://dart.dev)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-6DB33F?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Java](https://img.shields.io/badge/Java-21-007396?style=flat-square&logo=openjdk&logoColor=white)](https://adoptium.net)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android-lightgrey?style=flat-square)](https://github.com/chewbitdev/Capstone-Design)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE.md)
 
 <p align="center">
   <img src="assets/images/logo.png" alt="iKong Logo" width="96"/>
 </p>
 
 <p align="center">
-  노인을 위한 실시간 건강 모니터링 및 응급 대응 앱
+  Real-time health monitoring and emergency response app for the elderly
+</p>
+
+<p align="center">
+  <a href="README.ko.md">한국어</a>
 </p>
 
 ---
 
-**iKong**은 독거노인 및 고령자의 안전을 위한 스마트 헬스케어 앱입니다.
-웨어러블 기기로부터 실시간 생체 데이터를 수신하고, 낙상 및 응급 상황 발생 시 보호자와 119에 자동으로 알림을 전송합니다.
+**iKong** is a smart healthcare app designed for elderly people living alone.
+It receives real-time biometric data from wearable devices and automatically notifies guardians and emergency services when a fall or emergency is detected.
 
 ## Features
 
-- **실시간 생체 모니터링** — 심박수 / 호흡수 실시간 측정 및 이상 수치 즉시 알림
-- **건강 기록** — 일 / 주 / 월 단위 통계 그래프 및 수면 중 생체 데이터 기록
-- **낙상 감지** — 낙상 자동 감지 후 무움직임 지속 시 자동 신고
-- **긴급 호출** — 119 바로 신고 버튼 및 보호자 즉시 호출
-- **자동 알림** — 보호자에게 현재 위치 + 생체 데이터 자동 전송
-- **보호자 기능** — 부모님 상태 실시간 확인 및 건강 데이터 조회
-- **생활 모니터링** — 활동량 분석, 하루 활동 패턴, 장시간 침대 감지
-- **건강 리포트** — 주간 건강 분석 자동 생성 및 AI 기반 이상 패턴 감지
-- **멀티 보호자** — 보호자 최대 N명 등록 및 권한 설정
+- **Real-time Biometric Monitoring** — Live heart rate / breathing rate measurement with anomaly alerts
+- **Health Records** — Daily / weekly / monthly statistics charts and sleep biometric logging
+- **Fall Detection** — Automatic fall detection with auto-report after prolonged inactivity
+- **Emergency Call** — One-tap 119 emergency button and instant guardian notification
+- **Auto Alerts** — Automatic message with current location and biometric data sent to guardians
+- **Guardian Mode** — Real-time status check and health data dashboard for guardians
+- **Activity Monitoring** — Activity analysis, daily pattern tracking, prolonged bed detection
+- **Health Report** — Weekly health analysis and AI-based anomaly pattern detection
+- **Multi-Guardian** — Register up to N guardians with configurable permissions
 
 ## Architecture
 
@@ -39,16 +45,15 @@
 │  (Android/iOS)  │                          │                 │
 │                 │        WebSocket         │  · REST API     │
 │  · UI / State   │ ◄──────────────────────► │  · WebSocket    │
-│  · Biometric    │    (실시간 생체 데이터)      │  · FCM 발송     │
+│  · Biometric    │   (Real-time biometric)  │  · FCM Push     │
 │  · Emergency    │                          │                 │
 └─────────────────┘          FCM             └────────┬────────┘
          ▲                                            │
          └────────────────────────────────────────────┘
                          Push Notification
-
 ```
 
-### App 내부 구조 (Clean Architecture)
+### App Internal Structure (Clean Architecture)
 
 ```
 Presentation  →  Domain  ←  Data
@@ -61,28 +66,28 @@ Presentation  →  Domain  ←  Data
 
 ### App (Flutter)
 
-| 분류 | 기술 |
+| Category | Technology |
 |---|---|
-| 프레임워크 | Flutter 3.41.5 / Dart 3.11.3 |
-| 아키텍처 | Clean Architecture + Feature-first |
-| 상태관리 | Riverpod |
-| 라우팅 | go_router |
-| 네트워크 | Dio, WebSocket |
-| 로컬저장소 | SharedPreferences, Hive, SecureStorage |
-| 위치 | Geolocator |
-| 알림 | FCM, flutter_local_notifications |
-| 차트 | fl_chart |
-| 코드생성 | build_runner, json_serializable, riverpod_generator |
+| Framework | Flutter 3.41.5 / Dart 3.11.3 |
+| Architecture | Clean Architecture + Feature-first |
+| State Management | Riverpod |
+| Routing | go_router |
+| Network | Dio, WebSocket |
+| Local Storage | SharedPreferences, Hive, SecureStorage |
+| Location | Geolocator |
+| Notification | FCM, flutter_local_notifications |
+| Chart | fl_chart |
+| Code Generation | build_runner, json_serializable, riverpod_generator |
 
 ### Server (Spring Boot)
 
-| 분류 | 기술 |
+| Category | Technology |
 |---|---|
-| 프레임워크 | Spring Boot 3.x |
-| 언어 | Java 21 |
-| 통신 | REST API, WebSocket |
-| 인증 | JWT |
-| 푸시 알림 | Firebase FCM |
+| Framework | Spring Boot 3.x |
+| Language | Java 21 |
+| Communication | REST API, WebSocket |
+| Authentication | JWT |
+| Push Notification | Firebase FCM |
 
 ## Build & Run
 
@@ -107,29 +112,33 @@ flutter pub get
 ### Run
 
 ```bash
-# Android 에뮬레이터 실행
+# Launch Android emulator
 flutter emulators --launch Pixel_9_Pro_XL
 
-# iOS 시뮬레이터 실행 (Mac only)
+# Launch iOS simulator (Mac only)
 flutter emulators --launch apple_ios_simulator
 
-# 앱 실행
+# Run app
 flutter run -d all
 ```
 
-> 자세한 세팅 방법은 [SETUP.md](SETUP.md) 참고
+> See [SETUP.md](SETUP.md) for detailed setup instructions.
 
 ## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md) 및 [COMMANDS.md](COMMANDS.md) 참고
+Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-- [Issues](https://github.com/chewbitdev/Capstone-Design/issues) — 버그 리포트 및 기능 제안
-- [Pull Requests](https://github.com/chewbitdev/Capstone-Design/pulls) — 기능 개발, 문서 개선, 버그 수정
+- [Issues](https://github.com/chewbitdev/Capstone-Design/issues) — Bug reports and feature requests
+- [Pull Requests](https://github.com/chewbitdev/Capstone-Design/pulls) — New features, documentation improvements, and bug fixes
 
 ## Documentation
 
-| 문서 | 설명 |
+| Document | Description |
 |---|---|
-| [SETUP.md](SETUP.md) | 개발환경 세팅 가이드 (Mac / Windows) |
-| [COMMANDS.md](COMMANDS.md) | 자주 쓰는 명령어 모음 |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | 프로젝트 구조 및 개발 가이드라인 |
+| [SETUP.md](SETUP.md) | Environment setup guide (Mac / Windows) |
+| [COMMANDS.md](COMMANDS.md) | Frequently used commands |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Project structure and development guidelines |
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for details.
