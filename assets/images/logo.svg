@@ -1,81 +1,68 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <!-- Background gradient -->
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6DC97A"/>
-      <stop offset="100%" style="stop-color:#4AAF5A"/>
+    <linearGradient id="bgGrad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" style="stop-color:#7CC47E"/>
+      <stop offset="100%" style="stop-color:#52A855"/>
     </linearGradient>
-
-    <!-- Drop shadow for entire icon -->
-    <filter id="iconShadow" x="-15%" y="-10%" width="140%" height="145%">
-      <feDropShadow dx="0" dy="28" stdDeviation="36" flood-color="#2E6B38" flood-opacity="0.28"/>
+    <filter id="iconShadow">
+      <feDropShadow dx="0" dy="30" stdDeviation="40" flood-color="#1A5C1A" flood-opacity="0.25"/>
     </filter>
-
-    <!-- Shadow for heart -->
-    <filter id="heartShadow" x="-10%" y="-10%" width="130%" height="140%">
-      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#2E6B38" flood-opacity="0.22"/>
+    <filter id="heartShadow">
+      <feDropShadow dx="4" dy="10" stdDeviation="12" flood-color="#1A5C1A" flood-opacity="0.3"/>
     </filter>
-
-    <!-- Shadow for ECG line -->
-    <filter id="ecgShadow" x="-10%" y="-20%" width="130%" height="160%">
-      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#5A0000" flood-opacity="0.35"/>
+    <filter id="ecgShadow">
+      <feDropShadow dx="3" dy="10" stdDeviation="8" flood-color="#6B0000" flood-opacity="0.45"/>
     </filter>
-
-    <!-- Clip to rounded rect -->
-    <clipPath id="roundedClip">
-      <rect x="60" y="60" width="904" height="904" rx="210" ry="210"/>
+    <clipPath id="iconClip">
+      <rect x="72" y="72" width="880" height="880" rx="200" ry="200"/>
     </clipPath>
   </defs>
 
-  <!-- Icon background with shadow -->
+  <!-- Icon background -->
   <g filter="url(#iconShadow)">
-    <rect x="60" y="60" width="904" height="904" rx="210" ry="210" fill="url(#bgGrad)"/>
+    <rect x="72" y="72" width="880" height="880" rx="200" ry="200" fill="url(#bgGrad)"/>
   </g>
 
-  <!-- Subtle inner highlight (top) -->
-  <rect x="60" y="60" width="904" height="440" rx="210" ry="210" fill="rgba(255,255,255,0.07)" clip-path="url(#roundedClip)"/>
 
-  <!-- Heart outline (white) -->
-  <g filter="url(#heartShadow)">
+  <!-- Heart outline (white, thick stroke, shadow) -->
+  <g filter="url(#heartShadow)" clip-path="url(#iconClip)">
     <path d="
-      M512 750
-      C512 750 195 560 195 360
-      C195 258 268 185 362 185
-      C420 185 472 215 512 260
-      C552 215 604 185 662 185
-      C756 185 829 258 829 360
-      C829 560 512 750 512 750 Z
+      M512 740
+      C460 700 220 570 220 390
+      C220 288 296 210 390 210
+      C444 210 492 238 512 272
+      C532 238 580 210 634 210
+      C728 210 804 288 804 390
+      C804 570 564 700 512 740 Z
     "
     fill="none"
     stroke="white"
-    stroke-width="62"
+    stroke-width="58"
     stroke-linejoin="round"
-    stroke-linecap="round"
     />
   </g>
 
-  <!-- ECG / Heartbeat line (dark red) clipped inside icon -->
-  <g clip-path="url(#roundedClip)" filter="url(#ecgShadow)">
-    <polyline
-      points="
-        155,475
-        290,475
-        340,335
-        400,620
-        455,280
-        505,520
-        540,430
-        590,430
-        640,365
-        695,555
-        745,430
-        870,430
-      "
-      fill="none"
-      stroke="#B71C1C"
-      stroke-width="46"
-      stroke-linecap="round"
-      stroke-linejoin="round"
+  <!-- ECG line (dark red) with shadow, clipped to icon -->
+  <g filter="url(#ecgShadow)" clip-path="url(#iconClip)">
+    <!-- Main ECG: flat → sharp spike → flat → S-curve tail -->
+    <path d="
+      M 160 470
+      L 330 470
+      L 375 330
+      L 415 610
+      L 450 280
+      L 490 510
+      L 525 470
+      L 580 470
+      C 630 470 650 430 680 390
+      C 710 350 730 420 760 460
+      C 790 500 820 440 870 430
+    "
+    fill="none"
+    stroke="#B71C1C"
+    stroke-width="42"
+    stroke-linecap="round"
+    stroke-linejoin="round"
     />
   </g>
 </svg>
