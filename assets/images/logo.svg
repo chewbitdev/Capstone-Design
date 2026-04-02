@@ -1,33 +1,81 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4F8EF7;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2D6FD4;stop-opacity:1" />
+    <!-- Background gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6DC97A"/>
+      <stop offset="100%" style="stop-color:#4AAF5A"/>
     </linearGradient>
-    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
-      <stop offset="50%" style="stop-color:#FFFFFF;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
-    </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#2D6FD4" flood-opacity="0.3"/>
+
+    <!-- Drop shadow for entire icon -->
+    <filter id="iconShadow" x="-15%" y="-10%" width="140%" height="145%">
+      <feDropShadow dx="0" dy="28" stdDeviation="36" flood-color="#2E6B38" flood-opacity="0.28"/>
     </filter>
+
+    <!-- Shadow for heart -->
+    <filter id="heartShadow" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#2E6B38" flood-opacity="0.22"/>
+    </filter>
+
+    <!-- Shadow for ECG line -->
+    <filter id="ecgShadow" x="-10%" y="-20%" width="130%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#5A0000" flood-opacity="0.35"/>
+    </filter>
+
+    <!-- Clip to rounded rect -->
+    <clipPath id="roundedClip">
+      <rect x="60" y="60" width="904" height="904" rx="210" ry="210"/>
+    </clipPath>
   </defs>
 
-  <!-- Shield background -->
-  <path d="M100 18 L170 48 L170 105 C170 145 138 172 100 182 C62 172 30 145 30 105 L30 48 Z"
-        fill="url(#shieldGrad)" filter="url(#shadow)"/>
+  <!-- Icon background with shadow -->
+  <g filter="url(#iconShadow)">
+    <rect x="60" y="60" width="904" height="904" rx="210" ry="210" fill="url(#bgGrad)"/>
+  </g>
 
-  <!-- Shield inner highlight -->
-  <path d="M100 28 L160 54 L160 105 C160 140 131 164 100 173 C69 164 40 140 40 105 L40 54 Z"
-        fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+  <!-- Subtle inner highlight (top) -->
+  <rect x="60" y="60" width="904" height="440" rx="210" ry="210" fill="rgba(255,255,255,0.07)" clip-path="url(#roundedClip)"/>
 
-  <!-- Heartbeat / ECG line -->
-  <polyline
-    points="42,105 62,105 70,82 78,128 88,75 96,118 104,100 112,100 120,88 128,118 136,105 158,105"
+  <!-- Heart outline (white) -->
+  <g filter="url(#heartShadow)">
+    <path d="
+      M512 750
+      C512 750 195 560 195 360
+      C195 258 268 185 362 185
+      C420 185 472 215 512 260
+      C552 215 604 185 662 185
+      C756 185 829 258 829 360
+      C829 560 512 750 512 750 Z
+    "
     fill="none"
-    stroke="url(#pulseGrad)"
-    stroke-width="5"
+    stroke="white"
+    stroke-width="62"
+    stroke-linejoin="round"
     stroke-linecap="round"
-    stroke-linejoin="round"/>
+    />
+  </g>
+
+  <!-- ECG / Heartbeat line (dark red) clipped inside icon -->
+  <g clip-path="url(#roundedClip)" filter="url(#ecgShadow)">
+    <polyline
+      points="
+        155,475
+        290,475
+        340,335
+        400,620
+        455,280
+        505,520
+        540,430
+        590,430
+        640,365
+        695,555
+        745,430
+        870,430
+      "
+      fill="none"
+      stroke="#B71C1C"
+      stroke-width="46"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
 </svg>
