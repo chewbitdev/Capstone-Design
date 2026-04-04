@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../notification/presentation/pages/notification_center_page.dart';
+import '../../../guardian/presentation/pages/guardian_register_page.dart';
 
 class DependentHomePage extends StatelessWidget {
   const DependentHomePage({super.key});
@@ -10,18 +12,19 @@ class DependentHomePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'iKong',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+        title: const _StatusBadge(
+          level: _StatusLevel.danger,
+          message: '심박수 이상 감지',
         ),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.black87),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationCenterPage()),
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.black87),
@@ -114,7 +117,24 @@ class DependentHomePage extends StatelessWidget {
             const SizedBox(height: 20),
 
             // 보호자 목록
-            const _SectionTitle('등록된 보호자'),
+            Row(
+              children: [
+                const _SectionTitle('등록된 보호자'),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const GuardianRegisterPage()),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.add, size: 14, color: Colors.grey),
+                      SizedBox(width: 2),
+                      Text('추가', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             _GuardianCard(name: '보호자 1', relation: '자녀', phone: '010-0000-0000', isPrimary: true),
             const SizedBox(height: 8),
@@ -406,6 +426,8 @@ class _ActivityCard extends StatelessWidget {
           Expanded(child: _ActivityItem(icon: Icons.bedtime_outlined, label: '수면시간', value: '--')),
           SizedBox(width: 12),
           Expanded(child: _ActivityItem(icon: Icons.directions_run, label: '활동시간', value: '--')),
+          SizedBox(width: 12),
+          Expanded(child: _ActivityItem(icon: Icons.door_front_door_outlined, label: '외출', value: '--')),
         ],
       ),
     );
@@ -508,6 +530,73 @@ class _GuardianCard extends StatelessWidget {
           ),
           const Spacer(),
           const Icon(Icons.chevron_right, color: Colors.grey),
+        ],
+      ),
+    );
+  }
+}
+
+enum _StatusLevel { normal, warning, danger }
+
+class _StatusBadge extends StatelessWidget {
+  final _StatusLevel level;
+  final String message;
+
+  const _StatusBadge({required this.level, required this.message});
+
+  Color get _bgColor {
+    switch (level) {
+      case _StatusLevel.normal:
+        return const Color(0xFFE0E0E0);
+      case _StatusLevel.warning:
+        return const Color(0xFF757575);
+      case _StatusLevel.danger:
+        return const Color(0xFFD32F2F);
+    }
+  }
+
+  Color get _textColor {
+    switch (level) {
+      case _StatusLevel.normal:
+        return Colors.black54;
+      case _StatusLevel.warning:
+      case _StatusLevel.danger:
+        return Colors.white;
+    }
+  }
+
+  IconData get _icon {
+    switch (level) {
+      case _StatusLevel.normal:
+        return Icons.check_circle_outline;
+      case _StatusLevel.warning:
+        return Icons.warning_amber_outlined;
+      case _StatusLevel.danger:
+        return Icons.error_outline;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: _bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_icon, size: 14, color: _textColor),
+          const SizedBox(width: 5),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _textColor,
+            ),
+          ),
         ],
       ),
     );
