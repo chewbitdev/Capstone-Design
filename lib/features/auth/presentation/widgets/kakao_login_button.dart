@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../home/presentation/pages/dependent_home_page.dart';
 
 class KakaoLoginButton extends StatelessWidget {
   const KakaoLoginButton({super.key});
@@ -9,7 +10,9 @@ class KakaoLoginButton extends StatelessWidget {
       width: double.infinity,
       child: ElevatedButton(
         onPressed: () {
-          // TODO: 카카오 로그인 연동
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const DependentHomePage()),
+          );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFFEE500),
