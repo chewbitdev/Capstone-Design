@@ -49,8 +49,8 @@ class CaregiverHomePage extends ConsumerWidget {
                 final ward = wards[i];
                 return ListTile(
                   leading: CircleAvatar(child: Text(ward.name[0])),
-                  title: Text('${ward.name} (${ward.age}세)'),
-                  subtitle: Text(_statusLabel(ward.status)),
+                  title: Text(ward.name),
+                  subtitle: Text('${_statusLabel(ward.status)} · ${ward.relationship}'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(

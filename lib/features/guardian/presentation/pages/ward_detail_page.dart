@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/emergency_alert.dart';
 import '../../domain/entities/ward.dart';
 import '../providers/guardian_provider.dart';
-import 'add_ward_page.dart';
 import 'emergency_alert_page.dart';
 
 class WardDetailPage extends ConsumerWidget {
@@ -51,14 +50,6 @@ class WardDetailPage extends ConsumerWidget {
         title: Text(ward.name),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AddWardPage(ward: ward),
-              ),
-            ),
-          ),
-          IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () => _confirmDelete(context, ref),
           ),
@@ -69,7 +60,8 @@ class WardDetailPage extends ConsumerWidget {
           // 기본 정보
           const _SectionHeader('기본 정보'),
           ListTile(title: const Text('이름'), trailing: Text(ward.name)),
-          ListTile(title: const Text('나이'), trailing: Text('${ward.age}세')),
+          if (ward.age != null)
+            ListTile(title: const Text('나이'), trailing: Text('${ward.age}세')),
           ListTile(title: const Text('전화번호'), trailing: Text(ward.phoneNumber)),
           if (ward.address != null)
             ListTile(title: const Text('주소'), trailing: Text(ward.address!)),

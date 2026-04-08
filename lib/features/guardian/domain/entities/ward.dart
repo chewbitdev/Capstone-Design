@@ -2,22 +2,24 @@ class Ward {
   const Ward({
     required this.id,
     required this.name,
-    required this.age,
     required this.phoneNumber,
-    this.address,
-    this.profileImageUrl,
+    required this.relationship,
     required this.status,
     required this.lastUpdated,
+    this.age,
+    this.address,
+    this.profileImageUrl,
   });
 
   final String id;
   final String name;
-  final int age;
   final String phoneNumber;
-  final String? address;
-  final String? profileImageUrl;
+  final String relationship;
   final WardStatus status;
   final DateTime lastUpdated;
+  final int? age;
+  final String? address;
+  final String? profileImageUrl;
 }
 
 enum WardStatus { normal, warning, emergency, offline }
