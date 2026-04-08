@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/ward.dart';
 import '../providers/guardian_provider.dart';
+import 'add_ward_page.dart';
 import 'ward_detail_page.dart';
 import 'emergency_alert_page.dart';
 
@@ -68,7 +69,9 @@ class CaregiverHomePage extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AddWardPage()),
+        ),
         child: const Icon(Icons.person_add),
       ),
     );

@@ -5,45 +5,6 @@ import '../../domain/entities/emergency_alert.dart';
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 
-final _mockWards = [
-  Ward(
-    id: '1',
-    name: '김영희',
-    age: 72,
-    phoneNumber: '010-1234-5678',
-    address: '서울시 강남구 테헤란로 123',
-    status: WardStatus.emergency,
-    lastUpdated: DateTime.now().subtract(const Duration(minutes: 2)),
-  ),
-  Ward(
-    id: '2',
-    name: '이철수',
-    age: 68,
-    phoneNumber: '010-9876-5432',
-    address: '서울시 서초구 반포대로 45',
-    status: WardStatus.normal,
-    lastUpdated: DateTime.now().subtract(const Duration(minutes: 5)),
-  ),
-  Ward(
-    id: '3',
-    name: '박순자',
-    age: 75,
-    phoneNumber: '010-5555-7777',
-    address: '서울시 송파구 올림픽로 200',
-    status: WardStatus.warning,
-    lastUpdated: DateTime.now().subtract(const Duration(minutes: 1)),
-  ),
-  Ward(
-    id: '4',
-    name: '최민호',
-    age: 80,
-    phoneNumber: '010-3333-8888',
-    address: '서울시 마포구 합정동 99',
-    status: WardStatus.offline,
-    lastUpdated: DateTime.now().subtract(const Duration(hours: 2)),
-  ),
-];
-
 final _mockBiometrics = {
   '1': BiometricData(
     wardId: '1',
@@ -98,9 +59,62 @@ final _mockAlerts = [
   ),
 ];
 
+// ── Wards StateNotifier ────────────────────────────────────────────────────
+
+class WardsNotifier extends StateNotifier<List<Ward>> {
+  WardsNotifier()
+      : super([
+          Ward(
+            id: '1',
+            name: '김영희',
+            age: 72,
+            phoneNumber: '010-1234-5678',
+            address: '서울시 강남구 테헤란로 123',
+            status: WardStatus.emergency,
+            lastUpdated: DateTime.now().subtract(const Duration(minutes: 2)),
+          ),
+          Ward(
+            id: '2',
+            name: '이철수',
+            age: 68,
+            phoneNumber: '010-9876-5432',
+            address: '서울시 서초구 반포대로 45',
+            status: WardStatus.normal,
+            lastUpdated: DateTime.now().subtract(const Duration(minutes: 5)),
+          ),
+          Ward(
+            id: '3',
+            name: '박순자',
+            age: 75,
+            phoneNumber: '010-5555-7777',
+            address: '서울시 송파구 올림픽로 200',
+            status: WardStatus.warning,
+            lastUpdated: DateTime.now().subtract(const Duration(minutes: 1)),
+          ),
+          Ward(
+            id: '4',
+            name: '최민호',
+            age: 80,
+            phoneNumber: '010-3333-8888',
+            address: '서울시 마포구 합정동 99',
+            status: WardStatus.offline,
+            lastUpdated: DateTime.now().subtract(const Duration(hours: 2)),
+          ),
+        ]);
+
+  void addWard(Ward ward) {
+    state = [...state, ward];
+  }
+
+  void removeWard(String id) {
+    state = state.where((w) => w.id != id).toList();
+  }
+}
+
 // ── Providers ──────────────────────────────────────────────────────────────
 
-final wardsProvider = Provider<List<Ward>>((ref) => _mockWards);
+final wardsProvider =
+    StateNotifierProvider<WardsNotifier, List<Ward>>((ref) => WardsNotifier());
 
 final biometricProvider = Provider.family<BiometricData?, String>(
   (ref, wardId) => _mockBiometrics[wardId],
@@ -114,5 +128,3 @@ final alertsByWardProvider = Provider.family<List<EmergencyAlert>, String>(
   (ref, wardId) =>
       _mockAlerts.where((a) => a.wardId == wardId && !a.isResolved).toList(),
 );
-
-final selectedWardProvider = StateProvider<Ward?>((ref) => null);
