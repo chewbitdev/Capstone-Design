@@ -4,7 +4,10 @@ import '../../domain/entities/ward.dart';
 import '../providers/guardian_provider.dart';
 
 class AddWardPage extends ConsumerStatefulWidget {
-  const AddWardPage({super.key});
+  const AddWardPage({super.key, this.ward});
+
+  /// null이면 추가 모드, non-null이면 수정 모드
+  final Ward? ward;
 
   @override
   ConsumerState<AddWardPage> createState() => _AddWardPageState();
@@ -12,10 +15,22 @@ class AddWardPage extends ConsumerStatefulWidget {
 
 class _AddWardPageState extends ConsumerState<AddWardPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _addressController = TextEditingController();
+  late final TextEditingController _nameController;
+  late final TextEditingController _ageController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _addressController;
+
+  bool get _isEditing => widget.ward != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final w = widget.ward;
+    _nameController = TextEditingController(text: w?.name ?? '');
+    _ageController = TextEditingController(text: w != null ? '${w.age}' : '');
+    _phoneController = TextEditingController(text: w?.phoneNumber ?? '');
+    _addressController = TextEditingController(text: w?.address ?? '');
+  }
 
   @override
   void dispose() {
@@ -30,25 +45,32 @@ class _AddWardPageState extends ConsumerState<AddWardPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final ward = Ward(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: _isEditing
+          ? widget.ward!.id
+          : DateTime.now().millisecondsSinceEpoch.toString(),
       name: _nameController.text.trim(),
       age: int.parse(_ageController.text.trim()),
       phoneNumber: _phoneController.text.trim(),
       address: _addressController.text.trim().isEmpty
           ? null
           : _addressController.text.trim(),
-      status: WardStatus.offline,
+      status: _isEditing ? widget.ward!.status : WardStatus.offline,
       lastUpdated: DateTime.now(),
     );
 
-    ref.read(wardsProvider.notifier).addWard(ward);
+    if (_isEditing) {
+      ref.read(wardsProvider.notifier).updateWard(ward);
+    } else {
+      ref.read(wardsProvider.notifier).addWard(ward);
+    }
+
     Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('피보호자 추가')),
+      appBar: AppBar(title: Text(_isEditing ? '피보호자 수정' : '피보호자 추가')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -101,7 +123,7 @@ class _AddWardPageState extends ConsumerState<AddWardPage> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _submit,
-              child: const Text('추가'),
+              child: Text(_isEditing ? '저장' : '추가'),
             ),
           ],
         ),

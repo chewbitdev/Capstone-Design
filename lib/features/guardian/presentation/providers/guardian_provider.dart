@@ -3,7 +3,7 @@ import '../../domain/entities/ward.dart';
 import '../../domain/entities/biometric_data.dart';
 import '../../domain/entities/emergency_alert.dart';
 
-// ── Mock data ──────────────────────────────────────────────────────────────
+// ── Mock biometrics (read-only) ────────────────────────────────────────────
 
 final _mockBiometrics = {
   '1': BiometricData(
@@ -39,25 +39,6 @@ final _mockBiometrics = {
     recordedAt: DateTime.now().subtract(const Duration(hours: 2)),
   ),
 };
-
-final _mockAlerts = [
-  EmergencyAlert(
-    id: 'a1',
-    wardId: '1',
-    wardName: '김영희',
-    type: AlertType.fall,
-    message: '낙상이 감지되었습니다',
-    occurredAt: DateTime.now().subtract(const Duration(minutes: 2)),
-  ),
-  EmergencyAlert(
-    id: 'a2',
-    wardId: '1',
-    wardName: '김영희',
-    type: AlertType.spO2Low,
-    message: '산소포화도 91.5%',
-    occurredAt: DateTime.now().subtract(const Duration(minutes: 3)),
-  ),
-];
 
 // ── Wards StateNotifier ────────────────────────────────────────────────────
 
@@ -102,12 +83,66 @@ class WardsNotifier extends StateNotifier<List<Ward>> {
           ),
         ]);
 
-  void addWard(Ward ward) {
-    state = [...state, ward];
+  void addWard(Ward ward) => state = [...state, ward];
+
+  void updateWard(Ward updated) {
+    state = [
+      for (final w in state)
+        if (w.id == updated.id) updated else w,
+    ];
   }
 
-  void removeWard(String id) {
-    state = state.where((w) => w.id != id).toList();
+  void removeWard(String id) => state = state.where((w) => w.id != id).toList();
+}
+
+// ── Alerts StateNotifier ───────────────────────────────────────────────────
+
+class AlertsNotifier extends StateNotifier<List<EmergencyAlert>> {
+  AlertsNotifier()
+      : super([
+          EmergencyAlert(
+            id: 'a1',
+            wardId: '1',
+            wardName: '김영희',
+            type: AlertType.fall,
+            message: '낙상이 감지되었습니다',
+            occurredAt: DateTime.now().subtract(const Duration(minutes: 2)),
+          ),
+          EmergencyAlert(
+            id: 'a2',
+            wardId: '1',
+            wardName: '김영희',
+            type: AlertType.spO2Low,
+            message: '산소포화도 91.5%',
+            occurredAt: DateTime.now().subtract(const Duration(minutes: 3)),
+          ),
+          EmergencyAlert(
+            id: 'a3',
+            wardId: '3',
+            wardName: '박순자',
+            type: AlertType.heartRateAbnormal,
+            message: '심박수 95bpm',
+            occurredAt: DateTime.now().subtract(const Duration(hours: 1)),
+            isResolved: true,
+          ),
+        ]);
+
+  void resolve(String alertId) {
+    state = [
+      for (final a in state)
+        if (a.id == alertId)
+          EmergencyAlert(
+            id: a.id,
+            wardId: a.wardId,
+            wardName: a.wardName,
+            type: a.type,
+            message: a.message,
+            occurredAt: a.occurredAt,
+            isResolved: true,
+          )
+        else
+          a,
+    ];
   }
 }
 
@@ -120,11 +155,17 @@ final biometricProvider = Provider.family<BiometricData?, String>(
   (ref, wardId) => _mockBiometrics[wardId],
 );
 
+final alertsProvider =
+    StateNotifierProvider<AlertsNotifier, List<EmergencyAlert>>(
+        (ref) => AlertsNotifier());
+
 final activeAlertsProvider = Provider<List<EmergencyAlert>>(
-  (ref) => _mockAlerts.where((a) => !a.isResolved).toList(),
+  (ref) => ref.watch(alertsProvider).where((a) => !a.isResolved).toList(),
 );
 
 final alertsByWardProvider = Provider.family<List<EmergencyAlert>, String>(
-  (ref, wardId) =>
-      _mockAlerts.where((a) => a.wardId == wardId && !a.isResolved).toList(),
+  (ref, wardId) => ref
+      .watch(alertsProvider)
+      .where((a) => a.wardId == wardId && !a.isResolved)
+      .toList(),
 );

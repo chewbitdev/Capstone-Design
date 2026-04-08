@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/ward.dart';
 import '../providers/guardian_provider.dart';
 import 'add_ward_page.dart';
+import 'alert_history_page.dart';
 import 'ward_detail_page.dart';
-import 'emergency_alert_page.dart';
 
 class CaregiverHomePage extends ConsumerWidget {
   const CaregiverHomePage({super.key});
@@ -18,24 +18,21 @@ class CaregiverHomePage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('보호자 홈'),
         actions: [
-          if (alerts.isNotEmpty)
-            Badge(
-              label: Text('${alerts.length}'),
-              child: IconButton(
-                icon: const Icon(Icons.notifications),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => EmergencyAlertPage(alert: alerts.first),
-                  ),
-                ),
+          Badge(
+            label: Text('${alerts.length}'),
+            isLabelVisible: alerts.isNotEmpty,
+            child: IconButton(
+              icon: const Icon(Icons.notifications),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AlertHistoryPage()),
               ),
             ),
+          ),
         ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 요약
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
@@ -44,8 +41,6 @@ class CaregiverHomePage extends ConsumerWidget {
             ),
           ),
           const Divider(height: 1),
-
-          // 피보호자 목록
           Expanded(
             child: ListView.separated(
               itemCount: wards.length,

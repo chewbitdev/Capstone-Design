@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/emergency_alert.dart';
 import '../../domain/entities/ward.dart';
 import '../providers/guardian_provider.dart';
+import 'add_ward_page.dart';
 import 'emergency_alert_page.dart';
 
 class WardDetailPage extends ConsumerWidget {
@@ -16,13 +17,53 @@ class WardDetailPage extends ConsumerWidget {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('피보호자 삭제'),
+        content: Text('${ward.name}을(를) 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      ref.read(wardsProvider.notifier).removeWard(ward.id);
+      if (context.mounted) Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final biometric = ref.watch(biometricProvider(ward.id));
     final alerts = ref.watch(alertsByWardProvider(ward.id));
 
     return Scaffold(
-      appBar: AppBar(title: Text(ward.name)),
+      appBar: AppBar(
+        title: Text(ward.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AddWardPage(ward: ward),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () => _confirmDelete(context, ref),
+          ),
+        ],
+      ),
       body: ListView(
         children: [
           // 기본 정보
@@ -30,6 +71,8 @@ class WardDetailPage extends ConsumerWidget {
           ListTile(title: const Text('이름'), trailing: Text(ward.name)),
           ListTile(title: const Text('나이'), trailing: Text('${ward.age}세')),
           ListTile(title: const Text('전화번호'), trailing: Text(ward.phoneNumber)),
+          if (ward.address != null)
+            ListTile(title: const Text('주소'), trailing: Text(ward.address!)),
           ListTile(
             title: const Text('상태'),
             trailing: Text(_statusLabel(ward.status)),
@@ -65,7 +108,7 @@ class WardDetailPage extends ConsumerWidget {
 
           const Divider(),
 
-          // 긴급 알림
+          // 미해결 긴급 알림
           const _SectionHeader('미해결 긴급 알림'),
           if (alerts.isEmpty)
             const ListTile(title: Text('없음'))
@@ -75,13 +118,23 @@ class WardDetailPage extends ConsumerWidget {
                 leading: const Icon(Icons.warning),
                 title: Text(a.type.label),
                 subtitle: Text(a.message),
-                trailing: TextButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => EmergencyAlertPage(alert: a),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => EmergencyAlertPage(alert: a),
+                        ),
+                      ),
+                      child: const Text('보기'),
                     ),
-                  ),
-                  child: const Text('보기'),
+                    TextButton(
+                      onPressed: () =>
+                          ref.read(alertsProvider.notifier).resolve(a.id),
+                      child: const Text('해결'),
+                    ),
+                  ],
                 ),
               ),
             ),
