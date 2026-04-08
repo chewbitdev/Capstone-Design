@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+// 기존 페이지 import (프로젝트 경로에 맞게 유지)
 import '../../../notification/presentation/pages/notification_center_page.dart';
 import '../../../guardian/presentation/pages/guardian_register_page.dart';
-
-// 가이드라인 준수 : 공통 테마 컬러 사용
 import '../../../../shared/theme/app_colors.dart';
 
 class DependentHomePage extends StatelessWidget {
@@ -17,14 +16,7 @@ class DependentHomePage extends StatelessWidget {
         elevation: 0,
         toolbarHeight: 70, 
         
-        // 로고 파일 준비 전까지 임시 주석 처리 (에러 방지)
-        /*
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 20.0),
-          child: Image.asset('assets/ikong_logo.png'),
-        ),
-        leadingWidth: 70,
-        */
+        // 🌟 상단 뜬금없는 로고 제거 완료
 
         title: const _StatusBadge(
           level: _StatusLevel.danger,
@@ -52,6 +44,7 @@ class DependentHomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // 🌟 프리미엄 그라데이션 카드 적용
             _GreetingCard(),
             const SizedBox(height: 24),
 
@@ -147,37 +140,48 @@ class DependentHomePage extends StatelessWidget {
   }
 }
 
-// 이하 하단 위젯들은 디자인 가이드의 컬러 시스템을 사용하도록 모두 수정되었습니다.
-
+// 🌟 프리미엄 그라데이션 인사말 카드 위젯
 class _GreetingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [AppColors.primaryGreen, Color(0xFF2E7D32)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: AppColors.primaryGreen.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         children: [
-          const CircleAvatar(
-            radius: 25,
-            backgroundColor: AppColors.background,
-            child: Icon(Icons.person, size: 30, color: Colors.grey),
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: const CircleAvatar(
+              radius: 26,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person, size: 32, color: AppColors.primaryGreen),
+            ),
           ),
           const SizedBox(width: 16),
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('안녕하세요', style: TextStyle(fontSize: 14, color: Colors.grey)),
-              Text('홍길동 님', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text('안녕하세요', style: TextStyle(fontSize: 14, color: Colors.white70)),
+              SizedBox(height: 4),
+              Text('홍길동 님', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
             ],
           ),
           const Spacer(),
@@ -185,15 +189,19 @@ class _GreetingCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text('정상', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryGreen)),
+                child: const Row(
+                  children: [
+                    Icon(Icons.check_circle, size: 14, color: Colors.white),
+                    SizedBox(width: 4),
+                    Text('정상', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ],
+                ),
               ),
-              const SizedBox(height: 4),
-              const Text('모든 수치 안정적', style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
         ],

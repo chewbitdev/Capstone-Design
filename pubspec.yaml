@@ -88,8 +88,8 @@ flutter_launcher_icons:
 flutter:
   uses-material-design: true
 
-  # assets:
-  #   - assets/images/
+  assets:
+    - assets/images/icon.png
   #   - assets/icons/
   #   - assets/lottie/
 
