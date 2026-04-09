@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../widgets/kakao_login_button.dart';
-import '../../../../shared/theme/app_colors.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -8,144 +8,188 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 🌟 1. 화면 전체를 덮는 더욱 활기차고 눈에 띄는 그라데이션 배경
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            // 🌟 변경 포인트: 더 밝고 상쾌한 연두색에서 깊고 진한 초록색으로 이어지는 확실한 대비 적용
-            colors: [
-              Color(0xFF99D18F), // 밝고 상쾌한 연두색
-              Color(0xFF1B5E20), // 깊고 진한 초록색
-            ],
-            begin: Alignment.topCenter, // 위쪽 중앙에서 시작하여
-            end: Alignment.bottomCenter, // 아래쪽 중앙으로 부드럽게 이어지는 더 확연한 그라데이션
-          ),
-        ),
-        child: SafeArea(
-          bottom: false, // 하단 흰색 둥근 카드가 끝까지 덮이도록 설정
-          child: Column(
-            children: [
-              // 🌟 2. 힙한 타이포그래피 로고 영역 (상단 중앙) - 그대로 유지
-              const Expanded(
-                flex: 4, // 상단 로고 영역이 차지하는 비율
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'iKong',
-                        style: TextStyle(
-                          fontSize: 64, // 아주 크고 시원하게
-                          fontWeight: FontWeight.w900, // 가장 굵은 폰트
-                          color: Colors.white,
-                          letterSpacing: -2.5, // 자간을 확 좁혀서 로고타입 폼 미치게! 그대로 유지
-                          height: 1.0,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        '스마트 건강 모니터링 서비스',
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      backgroundColor: const Color(0xFF7CB342),
+      body: Stack(
+        // 🌟 배경 패턴을 넣기 위해 Stack으로 변경
+        children: [
+          // 🌟 [디테일 1] 우측 상단 은은한 원형 배경 패턴
+          Positioned(
+            top: -100,
+            right: -80,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.08), // 아주 연한 흰색
               ),
+            ),
+          ),
 
-              // 🌟 3. 하단 로그인 버튼 영역 (하얀색 둥근 카드로 깔끔하게 분리) - 그대로 유지
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(32, 40, 32, 40),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(40), // 위쪽 모서리만 둥글게
-                    topRight: Radius.circular(40),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      '피보호자로 시작하기',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // 배치가 좋았던 기존 카카오 로그인 버튼 유지!
-                    const KakaoLoginButton(),
-
-                    const SizedBox(height: 24),
-
-                    Row(
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            '또는',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[500],
+                        // 🌟 [디테일 2] 로고 위에 심플한 헬스케어 심볼 추가
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.2),
+                          ),
+                          child: const Icon(
+                            Icons.health_and_safety_rounded, // 쉴드+하트 아이콘
+                            color: Colors.white,
+                            size: 48,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'iKong',
+                          style: GoogleFonts.montserrat(
+                            textStyle: const TextStyle(
+                              fontSize: 56,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: -2.0,
                             ),
                           ),
                         ),
-                        const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+                        const SizedBox(height: 8),
+                        Text(
+                          '스마트 건강 모니터링 서비스',
+                          style: GoogleFonts.notoSansKr(
+                            textStyle: const TextStyle(
+                              fontSize: 15,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-
-                    const SizedBox(height: 24),
-
-                    OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryGreen,
-                        side: const BorderSide(color: AppColors.primaryGreen, width: 1.5),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        '보호자로 로그인',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // 하단 약관 안내
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: Text(
-                        '로그인 시 서비스 이용약관 및 개인정보 처리방침에 동의합니다.',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[400],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+
+                // 하단 흰색 로그인 카드 영역
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
+                    // 🌟 [디테일 3] 부드럽고 넓게 퍼지는 그림자 추가
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 30,
+                        offset: const Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '피보호자로 시작하기',
+                        style: GoogleFonts.notoSansKr(
+                          textStyle: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      const KakaoLoginButton(),
+
+                      const SizedBox(height: 24),
+
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Divider(
+                              color: Color(0xFFEEEEEE),
+                              thickness: 1,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              '또는',
+                              style: GoogleFonts.notoSansKr(
+                                textStyle: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const Expanded(
+                            child: Divider(
+                              color: Color(0xFFEEEEEE),
+                              thickness: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      OutlinedButton(
+                        onPressed: () {},
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF7CB342),
+                          side: const BorderSide(
+                            color: Color(0xFF7CB342),
+                            width: 1.2,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        child: Text(
+                          '보호자로 로그인',
+                          style: GoogleFonts.notoSansKr(
+                            textStyle: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      Text(
+                        '로그인 시 서비스 이용약관 및 개인정보 처리방침에 동의합니다.',
+                        style: GoogleFonts.notoSansKr(
+                          textStyle: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: MediaQuery.of(context).padding.bottom),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
