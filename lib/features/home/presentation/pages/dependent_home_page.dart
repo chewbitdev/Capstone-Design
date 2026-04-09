@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// 기존 페이지 import (프로젝트 경로에 맞게 유지)
 import '../../../notification/presentation/pages/notification_center_page.dart';
 import '../../../guardian/presentation/pages/guardian_register_page.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -14,10 +13,7 @@ class DependentHomePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        toolbarHeight: 70, 
-        
-        // 🌟 상단 뜬금없는 로고 제거 완료
-
+        toolbarHeight: 70,
         title: const _StatusBadge(
           level: _StatusLevel.danger,
           message: '심박수 이상 감지',
@@ -25,15 +21,23 @@ class DependentHomePage extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.black87),
+            icon: const Icon(
+              Icons.notifications_outlined,
+              color: Colors.black87,
+            ),
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const NotificationCenterPage()),
+                MaterialPageRoute(
+                  builder: (_) => const NotificationCenterPage(),
+                ),
               );
             },
           ),
           IconButton(
-            icon: const Icon(Icons.account_circle_outlined, color: Colors.black87),
+            icon: const Icon(
+              Icons.account_circle_outlined,
+              color: Colors.black87,
+            ),
             onPressed: () {},
           ),
           const SizedBox(width: 8),
@@ -44,29 +48,30 @@ class DependentHomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 🌟 프리미엄 그라데이션 카드 적용
             _GreetingCard(),
             const SizedBox(height: 24),
 
             const _SectionTitle('실시간 생체 데이터'),
             const SizedBox(height: 12),
-            Row(
+            const Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: _BiometricCard(
                     label: '심박수',
                     value: '--',
                     unit: 'bpm',
                     icon: Icons.favorite,
+                    iconColor: AppColors.heartRate, // 🌟 테마에서 가져온 빨간색
                   ),
                 ),
-                const SizedBox(width: 16),
-                const Expanded(
+                SizedBox(width: 16),
+                Expanded(
                   child: _BiometricCard(
                     label: '호흡수',
                     value: '--',
                     unit: '/min',
                     icon: Icons.air,
+                    iconColor: AppColors.breathRate, // 🌟 테마에서 가져온 파란색
                   ),
                 ),
               ],
@@ -121,16 +126,38 @@ class DependentHomePage extends StatelessWidget {
                 const Spacer(),
                 TextButton.icon(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const GuardianRegisterPage()),
+                    MaterialPageRoute(
+                      builder: (_) => const GuardianRegisterPage(),
+                    ),
                   ),
-                  icon: const Icon(Icons.add, size: 16, color: AppColors.primaryGreen),
-                  label: const Text('추가', style: TextStyle(color: AppColors.primaryGreen, fontSize: 14)),
+                  icon: const Icon(
+                    Icons.add,
+                    size: 16,
+                    color: AppColors.primaryGreen,
+                  ),
+                  label: const Text(
+                    '추가',
+                    style: TextStyle(
+                      color: AppColors.primaryGreen,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ],
             ),
-            const _GuardianCard(name: '보호자 1', relation: '자녀', phone: '010-0000-0000', isPrimary: true),
+            const _GuardianCard(
+              name: '보호자 1',
+              relation: '자녀',
+              phone: '010-0000-0000',
+              isPrimary: true,
+            ),
             const SizedBox(height: 12),
-            const _GuardianCard(name: '보호자 2', relation: '자녀', phone: '010-0000-0000', isPrimary: false),
+            const _GuardianCard(
+              name: '보호자 2',
+              relation: '자녀',
+              phone: '010-0000-0000',
+              isPrimary: false,
+            ),
 
             const SizedBox(height: 40),
           ],
@@ -140,7 +167,6 @@ class DependentHomePage extends StatelessWidget {
   }
 }
 
-// 🌟 프리미엄 그라데이션 인사말 카드 위젯
 class _GreetingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -172,16 +198,30 @@ class _GreetingCard extends StatelessWidget {
             child: const CircleAvatar(
               radius: 26,
               backgroundColor: Colors.white,
-              child: Icon(Icons.person, size: 32, color: AppColors.primaryGreen),
+              child: Icon(
+                Icons.person,
+                size: 32,
+                color: AppColors.primaryGreen,
+              ),
             ),
           ),
           const SizedBox(width: 16),
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('안녕하세요', style: TextStyle(fontSize: 14, color: Colors.white70)),
+              Text(
+                '안녕하세요',
+                style: TextStyle(fontSize: 14, color: Colors.white70),
+              ),
               SizedBox(height: 4),
-              Text('홍길동 님', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+              Text(
+                '홍길동 님',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
             ],
           ),
           const Spacer(),
@@ -189,7 +229,10 @@ class _GreetingCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -198,7 +241,14 @@ class _GreetingCard extends StatelessWidget {
                   children: [
                     Icon(Icons.check_circle, size: 14, color: Colors.white),
                     SizedBox(width: 4),
-                    Text('정상', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Text(
+                      '정상',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -218,7 +268,11 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+      ),
     );
   }
 }
@@ -228,8 +282,15 @@ class _BiometricCard extends StatelessWidget {
   final String value;
   final String unit;
   final IconData icon;
+  final Color iconColor; // 🌟 외부에서 주입받는 아이콘 색상
 
-  const _BiometricCard({required this.label, required this.value, required this.unit, required this.icon});
+  const _BiometricCard({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.icon,
+    required this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -238,21 +299,39 @@ class _BiometricCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 24, color: AppColors.primaryGreen),
+          Icon(icon, size: 24, color: iconColor), // 🌟 주입된 색상 적용
           const SizedBox(height: 12),
           Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
           const SizedBox(height: 4),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(value, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(width: 4),
-              Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(unit, style: const TextStyle(fontSize: 14, color: Colors.grey))),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  unit,
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+              ),
             ],
           ),
         ],
@@ -269,15 +348,27 @@ class _DeviceStatusCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           const Icon(Icons.watch, color: AppColors.primaryGreen),
           const SizedBox(width: 12),
-          const Text('웨어러블 기기', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+          const Text(
+            '웨어러블 기기',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          ),
           const Spacer(),
-          Text('연결 안됨', style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+          Text(
+            '연결 안됨',
+            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+          ),
         ],
       ),
     );
@@ -291,7 +382,13 @@ class _EmergencyButton extends StatelessWidget {
   final Color color;
   final VoidCallback onPressed;
 
-  const _EmergencyButton({required this.label, required this.subLabel, required this.icon, required this.color, required this.onPressed});
+  const _EmergencyButton({
+    required this.label,
+    required this.subLabel,
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -308,8 +405,18 @@ class _EmergencyButton extends StatelessWidget {
           children: [
             Icon(icon, size: 32, color: color),
             const SizedBox(height: 8),
-            Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-            Text(subLabel, style: TextStyle(fontSize: 12, color: color.withOpacity(0.7))),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              subLabel,
+              style: TextStyle(fontSize: 12, color: color.withOpacity(0.7)),
+            ),
           ],
         ),
       ),
@@ -325,7 +432,13 @@ class _FallDetectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -334,12 +447,24 @@ class _FallDetectionCard extends StatelessWidget {
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('낙상 감지 모니터링', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-              Text('마지막 감지: 없음', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                '낙상 감지 모니터링',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              ),
+              Text(
+                '마지막 감지: 없음',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ],
           ),
           const Spacer(),
-          Text('대기 중', style: TextStyle(color: AppColors.primaryGreen.withOpacity(0.7), fontWeight: FontWeight.bold)),
+          Text(
+            '대기 중',
+            style: TextStyle(
+              color: AppColors.primaryGreen.withOpacity(0.7),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -354,7 +479,13 @@ class _ActivityCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: const Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -372,7 +503,11 @@ class _ActivityItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _ActivityItem({required this.icon, required this.label, required this.value});
+  const _ActivityItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -381,7 +516,10 @@ class _ActivityItem extends StatelessWidget {
         Icon(icon, size: 20, color: AppColors.primaryGreen),
         const SizedBox(height: 8),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }
@@ -393,7 +531,12 @@ class _GuardianCard extends StatelessWidget {
   final String phone;
   final bool isPrimary;
 
-  const _GuardianCard({required this.name, required this.relation, required this.phone, required this.isPrimary});
+  const _GuardianCard({
+    required this.name,
+    required this.relation,
+    required this.phone,
+    required this.isPrimary,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -402,29 +545,60 @@ class _GuardianCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 5, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          const CircleAvatar(backgroundColor: AppColors.background, child: Icon(Icons.person_outline, color: AppColors.primaryGreen)),
+          const CircleAvatar(
+            backgroundColor: AppColors.background,
+            child: Icon(Icons.person_outline, color: AppColors.primaryGreen),
+          ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Text('$name ($relation)', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  Text(
+                    '$name ($relation)',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   if (isPrimary) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: AppColors.primaryGreen, borderRadius: BorderRadius.circular(4)),
-                      child: const Text('주 보호자', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        '주 보호자',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ],
               ),
-              Text(phone, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              Text(
+                phone,
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
+              ),
             ],
           ),
           const Spacer(),
@@ -447,16 +621,27 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: level == _StatusLevel.danger ? AppColors.alertRed : AppColors.primaryGreen,
+        color: level == _StatusLevel.danger
+            ? AppColors.alertRed
+            : AppColors.primaryGreen,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.error_outline, size: 16, color: Colors.white),
           const SizedBox(width: 6),
-          Text(message, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
         ],
       ),
     );
