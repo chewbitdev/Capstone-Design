@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/emergency_alert.dart';
 import '../../domain/entities/ward.dart';
 import '../providers/guardian_provider.dart';
+import 'biometric_history_page.dart';
 import 'emergency_alert_page.dart';
 
 class WardDetailPage extends ConsumerWidget {
@@ -73,7 +74,15 @@ class WardDetailPage extends ConsumerWidget {
           const Divider(),
 
           // 생체 데이터
-          const _SectionHeader('실시간 생체 데이터'),
+          ListTile(
+            title: const Text('실시간 생체 데이터', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
+            trailing: TextButton(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => BiometricHistoryPage(wardId: ward.id, wardName: ward.name),
+              )),
+              child: const Text('이력 보기'),
+            ),
+          ),
           if (biometric == null || !biometric.isActive)
             const ListTile(title: Text('데이터 없음 (오프라인)'))
           else ...[
