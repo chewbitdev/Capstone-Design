@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:dio/dio.dart';
 import '../../../home/presentation/pages/dependent_home_page.dart';
 
 class KakaoLoginButton extends StatelessWidget {
@@ -7,44 +8,56 @@ class KakaoLoginButton extends StatelessWidget {
 
   Future<void> _login(BuildContext context) async {
     try {
+      // 1. 카카오 OAuth 토큰 발급
       OAuthToken token;
-
-      // 카카오톡 설치 여부 확인 후 분기
       if (await isKakaoTalkInstalled()) {
         token = await UserApi.instance.loginWithKakaoTalk();
       } else {
         token = await UserApi.instance.loginWithKakaoAccount();
       }
 
-      // 추가 동의항목 요청 (카카오 디벨로퍼에서 설정한 항목 기준)
-      final scopeList = await UserApi.instance.scopes();
-      final requiredScopes = [
-        'name',
-        'gender',
-        'birthyear',
-        'phone_number',
-      ];
-      final needScopes = requiredScopes
-          .where((s) => scopeList.scopes?.any((sc) => sc.id == s && sc.agreed != true) ?? true)
-          .toList();
+      debugPrint('=== KAKAO TOKEN ===');
+      debugPrint('accessToken: ${token.accessToken}');
+      debugPrint('===================');
 
-      if (needScopes.isNotEmpty) {
-        token = await UserApi.instance.loginWithNewScopes(needScopes);
-      }
+      // 2. 백엔드로 카카오 액세스 토큰 전송 → JWT 발급
+      final dio = Dio();
+      final response = await dio.post(
+        'http://localhost:8080/api/v1/auth/login',
+        data: {
+          'kakaoAccessToken': token.accessToken,
+          'userType': 'USER',
+        },
+      );
 
-      debugPrint('카카오 로그인 성공: ${token.accessToken}');
+      final accessToken = response.data['accessToken'] as String;
+      final refreshToken = response.data['refreshToken'] as String;
+      final isNewUser = response.data['newUser'] as bool;
 
-      // 사용자 정보 조회
-      final user = await UserApi.instance.me();
-      debugPrint('사용자 닉네임: ${user.kakaoAccount?.profile?.nickname}');
+      debugPrint('JWT 발급 성공 / 신규유저: $isNewUser');
+      debugPrint('accessToken: $accessToken');
 
       if (context.mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const DependentHomePage()),
         );
       }
+    } on KakaoAuthException catch (e) {
+      debugPrint('카카오 인증 오류: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('카카오 인증 오류: ${e.message}')),
+        );
+      }
+    } on DioException catch (e) {
+      debugPrint('서버 연동 오류: ${e.response?.data}');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('서버 연동에 실패했습니다. 다시 시도해주세요.')),
+        );
+      }
     } catch (e) {
-      debugPrint('카카오 로그인 실패: $e');
+      debugPrint('로그인 오류: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')),
