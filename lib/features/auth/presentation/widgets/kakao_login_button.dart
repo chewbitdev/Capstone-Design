@@ -11,7 +11,13 @@ class KakaoLoginButton extends StatelessWidget {
       // 1. 카카오 OAuth 토큰 발급
       OAuthToken token;
       if (await isKakaoTalkInstalled()) {
-        token = await UserApi.instance.loginWithKakaoTalk();
+        try {
+          token = await UserApi.instance.loginWithKakaoTalk();
+        } catch (e) {
+          // 카카오톡 설치됐지만 계정 미연결 등의 경우 카카오 계정 로그인으로 폴백
+          debugPrint('카카오톡 로그인 실패, 카카오 계정으로 재시도: $e');
+          token = await UserApi.instance.loginWithKakaoAccount();
+        }
       } else {
         token = await UserApi.instance.loginWithKakaoAccount();
       }
