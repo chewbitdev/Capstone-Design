@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE.md)
 
 <p align="center">
-  <img src="assets/images/logo.svg" alt="iKong Logo" width="96"/>
+  <img src="assets/images/icon.png" alt="iKong Logo" width="96"/>
 </p>
 
 <p align="center">

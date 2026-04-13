@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
-import 'features/guardian/presentation/pages/caregiver_home_page.dart';
+import 'features/auth/presentation/pages/login_page.dart';
 
-class App extends StatelessWidget {
-  const App({super.key});
+class IKongApp extends StatelessWidget {
+  const IKongApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '아이콩',
+      title: 'iKong',
       debugShowCheckedModeBanner: false,
-      home: const CaregiverHomePage(),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
+        scaffoldBackgroundColor: Colors.white,
+        fontFamily: 'sans-serif',
+      ),
+      home: const LoginPage(),
     );
   }
 }
