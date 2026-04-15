@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:dio/dio.dart';
 import '../../../home/presentation/pages/dependent_home_page.dart';
+import '../../../../core/config/app_config.dart';
 
 class KakaoLoginButton extends StatelessWidget {
   const KakaoLoginButton({super.key});
@@ -29,7 +30,7 @@ class KakaoLoginButton extends StatelessWidget {
       // 2. 백엔드로 카카오 액세스 토큰 전송 → JWT 발급
       final dio = Dio();
       final response = await dio.post(
-        'http://localhost:8080/api/v1/auth/login',
+        '${AppConfig.baseUrl}/api/v1/auth/login',
         data: {
           'kakaoAccessToken': token.accessToken,
           'userType': 'USER',

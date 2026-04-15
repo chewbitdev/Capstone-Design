@@ -62,6 +62,9 @@ dependencies:
   # 카카오 로그인
   kakao_flutter_sdk_user: ^1.9.8
 
+  # 환경변수
+  flutter_dotenv: ^5.2.1
+
   # 유틸
   equatable: ^2.0.7
   dartz: ^0.10.1
@@ -94,6 +97,7 @@ flutter:
 
   assets:
     - assets/images/icon.png
+    - .env
   #   - assets/icons/
   #   - assets/lottie/
 

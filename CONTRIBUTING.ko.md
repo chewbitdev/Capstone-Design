@@ -213,7 +213,7 @@ git checkout -b feat/기능명
 ```bash
 git commit -m "feat: 실시간 심박수 화면 구현"
 git commit -m "fix: 로그인 토큰 저장 오류 수정"
-git commit -m "style: 홈 화면 UI 개선"
+git commit -m "ui: 홈 화면 UI 개선"
 git commit -m "docs: API 명세 문서 추가"
 ```
 
