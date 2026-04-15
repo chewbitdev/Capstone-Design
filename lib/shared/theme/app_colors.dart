@@ -3,23 +3,31 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
+  // 기본 브랜드 색상
+  static const Color primaryGreen = Color(0xFF8BC34A);
+  static const Color alertRed = Color(0xFFD32F2F);
+
   // Primary
-  static const Color primary = Color(0xFF2E7D32);        // Green 800
-  static const Color primaryLight = Color(0xFF4CAF50);   // Green 500
-  static const Color primarySurface = Color(0xFFE8F5E9); // Green 50
+  static const Color primary = Color(0xFF2E7D32);
+  static const Color primaryLight = Color(0xFF4CAF50);
+  static const Color primarySurface = Color(0xFFE8F5E9);
 
   // Alert / Status
-  static const Color danger = Color(0xFFD32F2F);         // Red 700
-  static const Color dangerLight = Color(0xFFEF5350);    // Red 400
-  static const Color dangerSurface = Color(0xFFFFEBEE);  // Red 50
-  static const Color warning = Color(0xFFF57C00);        // Orange 700
-  static const Color warningSurface = Color(0xFFFFF3E0); // Orange 50
+  static const Color danger = Color(0xFFD32F2F);
+  static const Color dangerLight = Color(0xFFEF5350);
+  static const Color dangerSurface = Color(0xFFFFEBEE);
+  static const Color warning = Color(0xFFF57C00);
+  static const Color warningSurface = Color(0xFFFFF3E0);
 
   // Status dots
-  static const Color statusNormal = Color(0xFF43A047);   // Green 600
-  static const Color statusWarning = Color(0xFFFF9800);  // Orange
-  static const Color statusDanger = Color(0xFFE53935);   // Red 600
-  static const Color statusOffline = Color(0xFF9E9E9E);  // Grey 500
+  static const Color statusNormal = Color(0xFF43A047);
+  static const Color statusWarning = Color(0xFFFF9800);
+  static const Color statusDanger = Color(0xFFE53935);
+  static const Color statusOffline = Color(0xFF9E9E9E);
+
+  // 실시간 생체 데이터 포인트 컬러
+  static const Color heartRate = Color(0xFFFF5252);
+  static const Color breathRate = Color(0xFF448AFF);
 
   // Background & Surface
   static const Color background = Color(0xFFFFFFFF);
