@@ -1,43 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../notification/presentation/pages/notification_center_page.dart';
 import '../../../guardian/presentation/pages/guardian_register_page.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../providers/dependent_home_provider.dart';
 
-class DependentHomePage extends StatelessWidget {
+class DependentHomePage extends ConsumerWidget {
   const DependentHomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(userProfileProvider);
+    final emergencyAsync = ref.watch(emergencyEventProvider);
+    final vitalsAsync = ref.watch(vitalsStreamProvider);
+    final guardiansAsync = ref.watch(guardiansProvider);
+
+    final isEmergency = emergencyAsync.valueOrNull != null;
+    final statusMessage = isEmergency
+        ? (emergencyAsync.value?.eventType ?? '이상 감지')
+        : '정상';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         toolbarHeight: 70,
-        title: const _StatusBadge(
-          level: _StatusLevel.danger,
-          message: '심박수 이상 감지',
+        title: _StatusBadge(
+          isEmergency: isEmergency,
+          message: isEmergency ? statusMessage : '정상',
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.notifications_outlined,
-              color: Colors.black87,
+            icon: const Icon(Icons.notifications_outlined, color: Colors.black87),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NotificationCenterPage()),
             ),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const NotificationCenterPage(),
-                ),
-              );
-            },
           ),
           IconButton(
-            icon: const Icon(
-              Icons.account_circle_outlined,
-              color: Colors.black87,
-            ),
+            icon: const Icon(Icons.account_circle_outlined, color: Colors.black87),
             onPressed: () {},
           ),
           const SizedBox(width: 8),
@@ -48,33 +50,78 @@ class DependentHomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _GreetingCard(),
+            // 인사 카드
+            profileAsync.when(
+              data: (profile) => _GreetingCard(
+                name: profile?.name ?? '사용자',
+                status: profile?.status ?? 'NORMAL',
+              ),
+              loading: () => _GreetingCard(name: '...', status: 'NORMAL'),
+              error: (_, __) => _GreetingCard(name: '사용자', status: 'NORMAL'),
+            ),
             const SizedBox(height: 24),
 
+            // 실시간 생체 데이터
             const _SectionTitle('실시간 생체 데이터'),
             const SizedBox(height: 12),
-            const Row(
-              children: [
-                Expanded(
-                  child: _BiometricCard(
-                    label: '심박수',
-                    value: '--',
-                    unit: 'bpm',
-                    icon: Icons.favorite,
-                    iconColor: AppColors.heartRate, // 🌟 테마에서 가져온 빨간색
+            vitalsAsync.when(
+              data: (vital) => Row(
+                children: [
+                  Expanded(
+                    child: _BiometricCard(
+                      label: '심박수',
+                      value: vital.heartRate?.toString() ?? '--',
+                      unit: 'bpm',
+                      icon: Icons.favorite,
+                      iconColor: AppColors.heartRate,
+                    ),
                   ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: _BiometricCard(
-                    label: '호흡수',
-                    value: '--',
-                    unit: '/min',
-                    icon: Icons.air,
-                    iconColor: AppColors.breathRate, // 🌟 테마에서 가져온 파란색
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _BiometricCard(
+                      label: '호흡수',
+                      value: vital.breathRate?.toString() ?? '--',
+                      unit: '/min',
+                      icon: Icons.air,
+                      iconColor: AppColors.breathRate,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              loading: () => const Row(
+                children: [
+                  Expanded(
+                    child: _BiometricCard(
+                      label: '심박수', value: '--', unit: 'bpm',
+                      icon: Icons.favorite, iconColor: AppColors.heartRate,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: _BiometricCard(
+                      label: '호흡수', value: '--', unit: '/min',
+                      icon: Icons.air, iconColor: AppColors.breathRate,
+                    ),
+                  ),
+                ],
+              ),
+              error: (_, __) => const Row(
+                children: [
+                  Expanded(
+                    child: _BiometricCard(
+                      label: '심박수', value: '--', unit: 'bpm',
+                      icon: Icons.favorite, iconColor: AppColors.heartRate,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: _BiometricCard(
+                      label: '호흡수', value: '--', unit: '/min',
+                      icon: Icons.air, iconColor: AppColors.breathRate,
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             const SizedBox(height: 28),
@@ -130,33 +177,45 @@ class DependentHomePage extends StatelessWidget {
                       builder: (_) => const GuardianRegisterPage(),
                     ),
                   ),
-                  icon: const Icon(
-                    Icons.add,
-                    size: 16,
-                    color: AppColors.primaryGreen,
-                  ),
+                  icon: const Icon(Icons.add, size: 16, color: AppColors.primaryGreen),
                   label: const Text(
                     '추가',
-                    style: TextStyle(
-                      color: AppColors.primaryGreen,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: AppColors.primaryGreen, fontSize: 14),
                   ),
                 ),
               ],
             ),
-            const _GuardianCard(
-              name: '보호자 1',
-              relation: '자녀',
-              phone: '010-0000-0000',
-              isPrimary: true,
-            ),
-            const SizedBox(height: 12),
-            const _GuardianCard(
-              name: '보호자 2',
-              relation: '자녀',
-              phone: '010-0000-0000',
-              isPrimary: false,
+            guardiansAsync.when(
+              data: (guardians) => guardians.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Text(
+                          '등록된 보호자가 없습니다.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    )
+                  : Column(
+                      children: guardians
+                          .map(
+                            (g) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _GuardianCard(
+                                name: g.name,
+                                relation: g.relation,
+                                phone: g.phone,
+                                isPrimary: g.isPrimary,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (_, __) => const SizedBox.shrink(),
             ),
 
             const SizedBox(height: 40),
@@ -168,6 +227,11 @@ class DependentHomePage extends StatelessWidget {
 }
 
 class _GreetingCard extends StatelessWidget {
+  final String name;
+  final String status;
+
+  const _GreetingCard({required this.name, required this.status});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -191,32 +255,22 @@ class _GreetingCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(2),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             child: const CircleAvatar(
               radius: 26,
               backgroundColor: Colors.white,
-              child: Icon(
-                Icons.person,
-                size: 32,
-                color: AppColors.primaryGreen,
-              ),
+              child: Icon(Icons.person, size: 32, color: AppColors.primaryGreen),
             ),
           ),
           const SizedBox(width: 16),
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text('안녕하세요', style: TextStyle(fontSize: 14, color: Colors.white70)),
+              const SizedBox(height: 4),
               Text(
-                '안녕하세요',
-                style: TextStyle(fontSize: 14, color: Colors.white70),
-              ),
-              SizedBox(height: 4),
-              Text(
-                '홍길동 님',
-                style: TextStyle(
+                '$name 님',
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -225,34 +279,26 @@ class _GreetingCard extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, size: 14, color: Colors.white),
+                const SizedBox(width: 4),
+                Text(
+                  status == 'NORMAL' ? '정상' : status,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.check_circle, size: 14, color: Colors.white),
-                    SizedBox(width: 4),
-                    Text(
-                      '정상',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -282,7 +328,7 @@ class _BiometricCard extends StatelessWidget {
   final String value;
   final String unit;
   final IconData icon;
-  final Color iconColor; // 🌟 외부에서 주입받는 아이콘 색상
+  final Color iconColor;
 
   const _BiometricCard({
     required this.label,
@@ -310,7 +356,7 @@ class _BiometricCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 24, color: iconColor), // 🌟 주입된 색상 적용
+          Icon(icon, size: 24, color: iconColor),
           const SizedBox(height: 12),
           Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
           const SizedBox(height: 4),
@@ -319,18 +365,12 @@ class _BiometricCard extends StatelessWidget {
             children: [
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               ),
               const SizedBox(width: 4),
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  unit,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
+                child: Text(unit, style: const TextStyle(fontSize: 14, color: Colors.grey)),
               ),
             ],
           ),
@@ -360,15 +400,10 @@ class _DeviceStatusCard extends StatelessWidget {
         children: [
           const Icon(Icons.watch, color: AppColors.primaryGreen),
           const SizedBox(width: 12),
-          const Text(
-            '웨어러블 기기',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-          ),
+          const Text('웨어러블 기기',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
           const Spacer(),
-          Text(
-            '연결 안됨',
-            style: TextStyle(color: Colors.grey[400], fontSize: 14),
-          ),
+          Text('연결 안됨', style: TextStyle(color: Colors.grey[400], fontSize: 14)),
         ],
       ),
     );
@@ -405,18 +440,11 @@ class _EmergencyButton extends StatelessWidget {
           children: [
             Icon(icon, size: 32, color: color),
             const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            Text(
-              subLabel,
-              style: TextStyle(fontSize: 12, color: color.withOpacity(0.7)),
-            ),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+            Text(subLabel,
+                style: TextStyle(fontSize: 12, color: color.withOpacity(0.7))),
           ],
         ),
       ),
@@ -447,23 +475,18 @@ class _FallDetectionCard extends StatelessWidget {
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '낙상 감지 모니터링',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-              ),
-              Text(
-                '마지막 감지: 없음',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
+              Text('낙상 감지 모니터링',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+              Text('마지막 감지: 없음',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
           const Spacer(),
           Text(
             '대기 중',
             style: TextStyle(
-              color: AppColors.primaryGreen.withOpacity(0.7),
-              fontWeight: FontWeight.bold,
-            ),
+                color: AppColors.primaryGreen.withOpacity(0.7),
+                fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -516,10 +539,9 @@ class _ActivityItem extends StatelessWidget {
         Icon(icon, size: 20, color: AppColors.primaryGreen),
         const SizedBox(height: 8),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
+        Text(value,
+            style:
+                const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -568,17 +590,13 @@ class _GuardianCard extends StatelessWidget {
                   Text(
                     '$name ($relation)',
                     style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                   if (isPrimary) ...[
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: AppColors.primaryGreen,
                         borderRadius: BorderRadius.circular(4),
@@ -586,19 +604,16 @@ class _GuardianCard extends StatelessWidget {
                       child: const Text(
                         '주 보호자',
                         style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 ],
               ),
-              Text(
-                phone,
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-              ),
+              Text(phone,
+                  style: const TextStyle(fontSize: 13, color: Colors.grey)),
             ],
           ),
           const Spacer(),
@@ -609,21 +624,17 @@ class _GuardianCard extends StatelessWidget {
   }
 }
 
-enum _StatusLevel { normal, warning, danger }
-
 class _StatusBadge extends StatelessWidget {
-  final _StatusLevel level;
+  final bool isEmergency;
   final String message;
-  const _StatusBadge({required this.level, required this.message});
+  const _StatusBadge({required this.isEmergency, required this.message});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: level == _StatusLevel.danger
-            ? AppColors.alertRed
-            : AppColors.primaryGreen,
+        color: isEmergency ? AppColors.alertRed : AppColors.primaryGreen,
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
@@ -632,15 +643,16 @@ class _StatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, size: 16, color: Colors.white),
+          Icon(
+            isEmergency ? Icons.error_outline : Icons.check_circle_outline,
+            size: 16,
+            color: Colors.white,
+          ),
           const SizedBox(width: 6),
           Text(
             message,
             style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+                fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ],
       ),
