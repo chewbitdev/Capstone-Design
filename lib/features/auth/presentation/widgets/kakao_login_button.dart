@@ -3,6 +3,7 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:dio/dio.dart';
 import '../../../home/presentation/pages/dependent_home_page.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/auth/auth_storage.dart';
 
 class KakaoLoginButton extends StatelessWidget {
   const KakaoLoginButton({super.key});
@@ -38,8 +39,13 @@ class KakaoLoginButton extends StatelessWidget {
       );
 
       final accessToken = response.data['accessToken'] as String;
-      final refreshToken = response.data['refreshToken'] as String;
+      final refreshToken = response.data['refreshToken'] as String?;
       final isNewUser = response.data['newUser'] as bool;
+
+      await AuthStorage.saveTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
 
       debugPrint('JWT 발급 성공 / 신규유저: $isNewUser');
       debugPrint('accessToken: $accessToken');
