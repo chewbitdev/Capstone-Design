@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:dio/dio.dart';
+import '../../../guardian/presentation/pages/caregiver_home_page.dart';
 import '../../../home/presentation/pages/dependent_home_page.dart';
+import '../../../home/data/demo/dependent_demo_data.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/auth/auth_storage.dart';
 
 class KakaoLoginButton extends StatelessWidget {
-  const KakaoLoginButton({super.key});
+  const KakaoLoginButton({super.key, this.isGuardian = false});
+
+  final bool isGuardian;
 
   Future<void> _login(BuildContext context) async {
+    if (isGuardian) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const CaregiverHomePage()),
+      );
+      return;
+    }
     try {
       // 1. 카카오 OAuth 토큰 발급
       OAuthToken token;

@@ -31,6 +31,23 @@ class DependentRepository {
         .toList();
   }
 
+  Future<void> inviteGuardian({
+    required int wardId,
+    required String name,
+    required String phone,
+    required String relationship,
+  }) async {
+    await _dio.post(
+      '/guardians/invite',
+      data: {
+        'wardId': wardId,
+        'guardianName': name,
+        'guardianPhone': phone,
+        'relationship': relationship,
+      },
+    );
+  }
+
   Stream<VitalModel> streamVitals(int userId) async* {
     final response = await _dio.get(
       '/api/vitals/stream/$userId',

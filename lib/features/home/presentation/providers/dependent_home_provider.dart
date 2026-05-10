@@ -37,3 +37,18 @@ final vitalsStreamProvider = StreamProvider<VitalModel>((ref) async* {
   if (userId == null) return;
   yield* ref.watch(dependentRepositoryProvider).streamVitals(userId);
 });
+
+Future<void> inviteGuardian({
+  required int wardId,
+  required String name,
+  required String phone,
+  required String relationship,
+  required DependentRepository repo,
+}) {
+  return repo.inviteGuardian(
+    wardId: wardId,
+    name: name,
+    phone: phone,
+    relationship: relationship,
+  );
+}

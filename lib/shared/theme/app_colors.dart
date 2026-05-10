@@ -24,6 +24,11 @@ class AppColors {
   static const Color statusWarning = Color(0xFFFF9800);
   static const Color statusDanger = Color(0xFFE53935);
   static const Color statusOffline = Color(0xFF9E9E9E);
+  static const Color statusOuting = Color(0xFF1976D2);
+
+  // Outing
+  static const Color outing = Color(0xFF1976D2);
+  static const Color outingSurface = Color(0xFFE3F2FD);
 
   // 실시간 생체 데이터 포인트 컬러
   static const Color heartRate = Color(0xFFFF5252);
