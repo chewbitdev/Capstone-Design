@@ -9,6 +9,9 @@ class Ward {
     this.age,
     this.address,
     this.profileImageUrl,
+    this.sleepTime,
+    this.activityTime,
+    this.outingTime,
   });
 
   final String id;
@@ -20,6 +23,9 @@ class Ward {
   final int? age;
   final String? address;
   final String? profileImageUrl;
+  final String? sleepTime;
+  final String? activityTime;
+  final String? outingTime;
 }
 
-enum WardStatus { normal, warning, emergency, offline }
+enum WardStatus { normal, warning, emergency, offline, outing }

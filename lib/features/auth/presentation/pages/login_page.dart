@@ -2,194 +2,270 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/kakao_login_button.dart';
 
-class LoginPage extends StatelessWidget {
+enum _Role { dependent, guardian }
+
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF7CB342),
-      body: Stack(
-        // 🌟 배경 패턴을 넣기 위해 Stack으로 변경
-        children: [
-          // 🌟 [디테일 1] 우측 상단 은은한 원형 배경 패턴
-          Positioned(
-            top: -100,
-            right: -80,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08), // 아주 연한 흰색
-              ),
-            ),
-          ),
+  State<LoginPage> createState() => _LoginPageState();
+}
 
-          SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // 🌟 [디테일 2] 로고 위에 심플한 헬스케어 심볼 추가
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.2),
-                          ),
-                          child: const Icon(
-                            Icons.health_and_safety_rounded, // 쉴드+하트 아이콘
-                            color: Colors.white,
-                            size: 48,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'iKong',
-                          style: GoogleFonts.montserrat(
-                            textStyle: const TextStyle(
-                              fontSize: 56,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: -2.0,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '스마트 건강 모니터링 서비스',
-                          style: GoogleFonts.notoSansKr(
-                            textStyle: const TextStyle(
-                              fontSize: 15,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+  _Role _role = _Role.dependent;
+  late AnimationController _animController;
+  late Animation<Color?> _colorTop;
+  late Animation<Color?> _colorBottom;
+
+  static const _dependentTop = Color(0xFF7CB342);
+  static const _dependentBottom = Color(0xFF558B2F);
+  static const _guardianTop = Color(0xFFE53935);
+  static const _guardianBottom = Color(0xFFC62828);
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _colorTop = ColorTween(begin: _dependentTop, end: _guardianTop)
+        .animate(CurvedAnimation(parent: _animController, curve: Curves.easeInOut));
+    _colorBottom = ColorTween(begin: _dependentBottom, end: _guardianBottom)
+        .animate(CurvedAnimation(parent: _animController, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  void _selectRole(_Role role) {
+    if (_role == role) return;
+    setState(() => _role = role);
+    if (role == _Role.guardian) {
+      _animController.forward();
+    } else {
+      _animController.reverse();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animController,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: _colorTop.value,
+          body: Stack(
+            children: [
+              // 그라디언트 배경
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [_colorTop.value!, _colorBottom.value!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
+              ),
 
-                // 하단 흰색 로그인 카드 영역
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
+              // 배경 장식 원
+              Positioned(
+                top: -100,
+                right: -80,
+                child: Container(
+                  width: 300,
+                  height: 300,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
-                    // 🌟 [디테일 3] 부드럽고 넓게 퍼지는 그림자 추가
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 30,
-                        offset: const Offset(0, -5),
-                      ),
-                    ],
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.06),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '피보호자로 시작하기',
-                        style: GoogleFonts.notoSansKr(
-                          textStyle: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                ),
+              ),
+              Positioned(
+                bottom: 220,
+                left: -60,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+              ),
 
-                      const KakaoLoginButton(),
-
-                      const SizedBox(height: 24),
-
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Divider(
-                              color: Color(0xFFEEEEEE),
-                              thickness: 1,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              '또는',
-                              style: GoogleFonts.notoSansKr(
+              SafeArea(
+                bottom: false,
+                child: Column(
+                  children: [
+                    // 로고 영역
+                    Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Heart View',
+                              style: GoogleFonts.montserrat(
                                 textStyle: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -1.0,
                                 ),
                               ),
                             ),
-                          ),
-                          const Expanded(
-                            child: Divider(
-                              color: Color(0xFFEEEEEE),
-                              thickness: 1,
+                            const SizedBox(height: 12),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 250),
+                              child: Text(
+                                _role == _Role.dependent
+                                    ? '건강 상태를 모니터링하고\n보호자와 연결하세요'
+                                    : '소중한 가족의 건강을\n실시간으로 확인하세요',
+                                key: ValueKey(_role),
+                                style: GoogleFonts.notoSansKr(
+                                  textStyle: TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    height: 1.6,
+                                  ),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // 하단 카드
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 30,
+                            offset: const Offset(0, -5),
                           ),
                         ],
                       ),
-
-                      const SizedBox(height: 24),
-
-                      OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF7CB342),
-                          side: const BorderSide(
-                            color: Color(0xFF7CB342),
-                            width: 1.2,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          minimumSize: const Size(double.infinity, 50),
-                        ),
-                        child: Text(
-                          '보호자로 로그인',
-                          style: GoogleFonts.notoSansKr(
-                            textStyle: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 역할 선택 토글
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              children: [
+                                _RoleTab(
+                                  label: '피보호자',
+                                  selected: _role == _Role.dependent,
+                                  accentColor: _dependentTop,
+                                  onTap: () => _selectRole(_Role.dependent),
+                                ),
+                                _RoleTab(
+                                  label: '보호자',
+                                  selected: _role == _Role.guardian,
+                                  accentColor: _guardianTop,
+                                  onTap: () => _selectRole(_Role.guardian),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ),
 
-                      const SizedBox(height: 40),
+                          const SizedBox(height: 24),
 
-                      Text(
-                        '로그인 시 서비스 이용약관 및 개인정보 처리방침에 동의합니다.',
-                        style: GoogleFonts.notoSansKr(
-                          textStyle: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
+                          // 카카오 로그인 버튼
+                          KakaoLoginButton(isGuardian: _role == _Role.guardian),
+
+                          const SizedBox(height: 32),
+
+                          Text(
+                            '로그인 시 서비스 이용약관 및 개인정보 처리방침에 동의합니다.',
+                            style: GoogleFonts.notoSansKr(
+                              textStyle: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                        ),
-                      ),
 
-                      SizedBox(height: MediaQuery.of(context).padding.bottom),
-                    ],
-                  ),
+                          SizedBox(height: MediaQuery.of(context).padding.bottom),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RoleTab extends StatelessWidget {
+  const _RoleTab({
+    required this.label,
+    required this.selected,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: accentColor.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                color: selected ? accentColor : Colors.grey,
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -13,7 +13,6 @@ List<BiometricRecord> _generateDaily(String wardId) {
       time: t,
       heartRate: 65 + rng.nextInt(30),
       respiratoryRate: 14 + rng.nextInt(6),
-      spO2: 95.0 + rng.nextDouble() * 4,
     );
   });
 }
@@ -27,7 +26,6 @@ List<BiometricRecord> _generateWeekly(String wardId) {
       time: DateTime(t.year, t.month, t.day),
       heartRate: 65 + rng.nextInt(25),
       respiratoryRate: 14 + rng.nextInt(6),
-      spO2: 95.0 + rng.nextDouble() * 4,
     );
   });
 }
@@ -41,7 +39,6 @@ List<BiometricRecord> _generateMonthly(String wardId) {
       time: DateTime(t.year, t.month, t.day),
       heartRate: 65 + rng.nextInt(25),
       respiratoryRate: 14 + rng.nextInt(6),
-      spO2: 95.0 + rng.nextDouble() * 4,
     );
   });
 }

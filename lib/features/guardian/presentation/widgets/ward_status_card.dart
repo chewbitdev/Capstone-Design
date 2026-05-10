@@ -22,6 +22,7 @@ class WardStatusCard extends ConsumerWidget {
         WardStatus.warning => StatusLevel.warning,
         WardStatus.emergency => StatusLevel.danger,
         WardStatus.offline => StatusLevel.offline,
+        WardStatus.outing => StatusLevel.normal,
       };
 
   String _statusLabel(WardStatus s) => switch (s) {
@@ -29,6 +30,7 @@ class WardStatusCard extends ConsumerWidget {
         WardStatus.warning => '주의',
         WardStatus.emergency => '긴급',
         WardStatus.offline => '오프라인',
+        WardStatus.outing => '외출 중',
       };
 
   Color _statusColor(WardStatus s) => switch (s) {
@@ -36,6 +38,7 @@ class WardStatusCard extends ConsumerWidget {
         WardStatus.warning => AppColors.statusWarning,
         WardStatus.emergency => AppColors.statusDanger,
         WardStatus.offline => AppColors.statusOffline,
+        WardStatus.outing => AppColors.statusOuting,
       };
 
   String _lastUpdatedText(DateTime dt) {
@@ -51,6 +54,7 @@ class WardStatusCard extends ConsumerWidget {
     final biometric = ref.watch(biometricProvider(ward.id));
     final alerts = ref.watch(alertsByWardProvider(ward.id));
     final isEmergency = ward.status == WardStatus.emergency;
+    final isOuting = ward.status == WardStatus.outing;
 
     return GestureDetector(
       onTap: onTap,
@@ -60,14 +64,20 @@ class WardStatusCard extends ConsumerWidget {
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isEmergency ? AppColors.danger : AppColors.border,
-            width: isEmergency ? 1.5 : 1,
+            color: isEmergency
+                ? AppColors.danger
+                : ward.status == WardStatus.warning
+                    ? AppColors.warning
+                    : AppColors.border,
+            width: (isEmergency || ward.status == WardStatus.warning) ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
               color: isEmergency
                   ? AppColors.danger.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.04),
+                  : ward.status == WardStatus.warning
+                      ? AppColors.warning.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -104,6 +114,7 @@ class WardStatusCard extends ConsumerWidget {
                 ),
               ),
 
+
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -128,18 +139,43 @@ class WardStatusCard extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              '${ward.age}세',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColors.textSecondary,
+                            if (ward.age != null)
+                              Text(
+                                '${ward.age}세',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0F0F0),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                ward.relationship,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 6),
-                        if (biometric != null && biometric.isActive)
-                          _BiometricRow(biometric: biometric)
+                        if (isOuting)
+                          const Text(
+                            '외출 중 — 데이터 수신 불가',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.statusOuting,
+                            ),
+                          )
+                        else if (biometric != null && biometric.isActive)
+                          _BiometricRow(biometric: biometric, status: ward.status)
                         else
                           const Text(
                             '데이터 없음',
@@ -207,15 +243,24 @@ class _Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEmergency = status == WardStatus.emergency;
+    final isOuting = status == WardStatus.outing;
+    final bgColor = isEmergency
+        ? AppColors.dangerSurface
+        : isOuting
+            ? AppColors.outingSurface
+            : AppColors.primarySurface;
+    final fgColor = isEmergency
+        ? AppColors.danger
+        : isOuting
+            ? AppColors.outing
+            : AppColors.primary;
     return Stack(
       children: [
         Container(
           width: 52,
           height: 52,
           decoration: BoxDecoration(
-            color: isEmergency
-                ? AppColors.dangerSurface
-                : AppColors.primarySurface,
+            color: bgColor,
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -224,7 +269,7 @@ class _Avatar extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: isEmergency ? AppColors.danger : AppColors.primary,
+                color: fgColor,
               ),
             ),
           ),
@@ -238,6 +283,7 @@ class _Avatar extends StatelessWidget {
               WardStatus.warning => StatusLevel.warning,
               WardStatus.emergency => StatusLevel.danger,
               WardStatus.offline => StatusLevel.offline,
+              WardStatus.outing => StatusLevel.normal,
             },
             size: 14,
           ),
@@ -248,33 +294,35 @@ class _Avatar extends StatelessWidget {
 }
 
 class _BiometricRow extends StatelessWidget {
-  const _BiometricRow({required this.biometric});
+  const _BiometricRow({required this.biometric, required this.status});
 
   final BiometricData biometric;
+  final WardStatus status;
+
+  Color get _statusColor => switch (status) {
+        WardStatus.emergency => AppColors.danger,
+        WardStatus.warning => AppColors.warning,
+        WardStatus.normal => AppColors.statusNormal,
+        _ => AppColors.textSecondary,
+      };
 
   @override
   Widget build(BuildContext context) {
+    final color = _statusColor;
     return Row(
       children: [
         _Metric(
-          icon: Icons.favorite,
+          icon: Icons.favorite_rounded,
           value: '${biometric.heartRate}',
           unit: 'bpm',
-          isAbnormal: biometric.isHeartRateAbnormal,
+          color: color,
         ),
         const SizedBox(width: 12),
         _Metric(
-          icon: Icons.air,
+          icon: Icons.air_rounded,
           value: '${biometric.respiratoryRate}',
           unit: '/min',
-          isAbnormal: biometric.isRespiratoryAbnormal,
-        ),
-        const SizedBox(width: 12),
-        _Metric(
-          icon: Icons.water_drop,
-          value: biometric.spO2.toStringAsFixed(1),
-          unit: '%',
-          isAbnormal: biometric.isSpO2Abnormal,
+          color: color,
         ),
       ],
     );
@@ -286,17 +334,16 @@ class _Metric extends StatelessWidget {
     required this.icon,
     required this.value,
     required this.unit,
-    required this.isAbnormal,
+    required this.color,
   });
 
   final IconData icon;
   final String value;
   final String unit;
-  final bool isAbnormal;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final color = isAbnormal ? AppColors.danger : AppColors.textSecondary;
     return Row(
       children: [
         Icon(icon, size: 12, color: color),
@@ -305,7 +352,7 @@ class _Metric extends StatelessWidget {
           '$value$unit',
           style: TextStyle(
             fontSize: 12,
-            fontWeight: isAbnormal ? FontWeight.w600 : FontWeight.w400,
+            fontWeight: FontWeight.w600,
             color: color,
           ),
         ),
