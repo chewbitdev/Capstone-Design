@@ -10,7 +10,7 @@ import '../../domain/entities/ward.dart';
 import '../../domain/entities/biometric_data.dart';
 import '../../domain/entities/emergency_alert.dart';
 
-const bool kGuardianDemoMode = true;
+const bool kGuardianDemoMode = false;
 
 // ── 시나리오 선택 ──────────────────────────────────────────────
 const _GScenario kGuardianScenario = _GScenario.multipleIssues;

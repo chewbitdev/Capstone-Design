@@ -3,12 +3,36 @@ import '../../domain/entities/ward.dart';
 import '../../domain/entities/biometric_data.dart';
 import '../../domain/entities/emergency_alert.dart';
 import '../../data/demo/guardian_demo_data.dart';
+import '../../data/repositories/guardian_repository.dart';
+
+// ── Repository ─────────────────────────────────────────────────────────────
+
+final guardianRepositoryProvider = Provider<GuardianRepository>(
+  (_) => GuardianRepository(),
+);
+
+// ── Biometrics map (keyed by wardId) ──────────────────────────────────────
+
+final biometricsMapProvider = StateProvider<Map<String, BiometricData>>(
+  (_) => kGuardianDemoMode ? GuardianDemoData.biometrics : {},
+);
 
 // ── Wards StateNotifier ────────────────────────────────────────────────────
 
 class WardsNotifier extends StateNotifier<List<Ward>> {
-  WardsNotifier()
-      : super(kGuardianDemoMode ? GuardianDemoData.wards : []);
+  WardsNotifier(GuardianRepository repo, Ref ref)
+      : super(kGuardianDemoMode ? GuardianDemoData.wards : []) {
+    if (!kGuardianDemoMode) _load(repo, ref);
+  }
+
+  Future<void> _load(GuardianRepository repo, Ref ref) async {
+    try {
+      final (wards, biometrics) = await repo.fetchUsersAndBiometrics();
+      if (!mounted) return;
+      state = wards;
+      ref.read(biometricsMapProvider.notifier).state = biometrics;
+    } catch (_) {}
+  }
 
   void addWard(Ward ward) => state = [...state, ward];
 
@@ -26,10 +50,25 @@ class WardsNotifier extends StateNotifier<List<Ward>> {
 // ── Alerts StateNotifier ───────────────────────────────────────────────────
 
 class AlertsNotifier extends StateNotifier<List<EmergencyAlert>> {
-  AlertsNotifier()
-      : super(kGuardianDemoMode ? GuardianDemoData.alerts : []);
+  final GuardianRepository _repo;
+
+  AlertsNotifier(this._repo)
+      : super(kGuardianDemoMode ? GuardianDemoData.alerts : []) {
+    if (!kGuardianDemoMode) _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final alerts = await _repo.fetchAlerts();
+      if (mounted) state = alerts;
+    } catch (_) {}
+  }
 
   void resolve(String alertId) {
+    if (!kGuardianDemoMode) {
+      final id = int.tryParse(alertId);
+      if (id != null) _repo.resolveEvent(id).catchError((_) {});
+    }
     state = [
       for (final a in state)
         if (a.id == alertId)
@@ -48,6 +87,10 @@ class AlertsNotifier extends StateNotifier<List<EmergencyAlert>> {
   }
 
   void resolveWithMessage(String alertId, String newMessage) {
+    if (!kGuardianDemoMode) {
+      final id = int.tryParse(alertId);
+      if (id != null) _repo.resolveEvent(id).catchError((_) {});
+    }
     state = [
       for (final a in state)
         if (a.id == alertId)
@@ -68,22 +111,43 @@ class AlertsNotifier extends StateNotifier<List<EmergencyAlert>> {
   void dismiss(String alertId) {
     state = state.where((a) => a.id != alertId).toList();
   }
+
+  void resolveAll() {
+    if (!kGuardianDemoMode) {
+      _repo.resolveAllEvents().catchError((_) {});
+    }
+    state = [
+      for (final a in state)
+        EmergencyAlert(
+          id: a.id,
+          wardId: a.wardId,
+          wardName: a.wardName,
+          type: a.type,
+          message: a.message,
+          occurredAt: a.occurredAt,
+          isResolved: true,
+        ),
+    ];
+  }
 }
 
 // ── Providers ──────────────────────────────────────────────────────────────
 
 final wardsProvider =
-    StateNotifierProvider<WardsNotifier, List<Ward>>((ref) => WardsNotifier());
+    StateNotifierProvider<WardsNotifier, List<Ward>>(
+  (ref) => WardsNotifier(ref.watch(guardianRepositoryProvider), ref),
+);
 
 final biometricProvider = Provider.family<BiometricData?, String>(
   (ref, wardId) => kGuardianDemoMode
       ? GuardianDemoData.biometrics[wardId]
-      : null,
+      : ref.watch(biometricsMapProvider)[wardId],
 );
 
 final alertsProvider =
     StateNotifierProvider<AlertsNotifier, List<EmergencyAlert>>(
-        (ref) => AlertsNotifier());
+  (ref) => AlertsNotifier(ref.watch(guardianRepositoryProvider)),
+);
 
 final activeAlertsProvider = Provider<List<EmergencyAlert>>(
   (ref) => ref.watch(alertsProvider).where((a) => !a.isResolved).toList(),

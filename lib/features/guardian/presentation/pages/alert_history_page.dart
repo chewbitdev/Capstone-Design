@@ -42,11 +42,7 @@ class AlertHistoryPage extends ConsumerWidget {
         actions: [
           if (active.isNotEmpty)
             TextButton(
-              onPressed: () {
-                for (final a in active) {
-                  ref.read(alertsProvider.notifier).resolve(a.id);
-                }
-              },
+              onPressed: () => ref.read(alertsProvider.notifier).resolveAll(),
               child: const Text('전체 해결',
                   style: TextStyle(color: AppColors.primary)),
             ),
