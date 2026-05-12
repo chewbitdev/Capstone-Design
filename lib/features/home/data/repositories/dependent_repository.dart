@@ -6,20 +6,46 @@ import '../models/user_profile_model.dart';
 import '../models/vital_model.dart';
 import '../../../../core/network/api_client.dart';
 
+class DeviceStatusModel {
+  final bool raspberryConnected;
+  final bool heartSensorConnected;
+  final bool fallSensorConnected;
+
+  bool get isConnected => raspberryConnected;
+
+  const DeviceStatusModel({
+    required this.raspberryConnected,
+    required this.heartSensorConnected,
+    required this.fallSensorConnected,
+  });
+
+  factory DeviceStatusModel.fromJson(Map<String, dynamic> json) =>
+      DeviceStatusModel(
+        raspberryConnected: json['raspberryConnected'] as bool? ?? false,
+        heartSensorConnected: json['heartSensorConnected'] as bool? ?? false,
+        fallSensorConnected: json['fallSensorConnected'] as bool? ?? false,
+      );
+}
+
 class DependentRepository {
   final Dio _dio = createDio();
 
+  /// GET /api/users/{userId}/main
   Future<UserProfileModel> getUserProfile(int userId) async {
     final response = await _dio.get('/api/users/$userId/main');
     return UserProfileModel.fromJson(response.data as Map<String, dynamic>);
   }
 
+  /// GET /api/emergency_event/{userId}/emergency
   Future<EmergencyEventModel?> getEmergencyEvent(int userId) async {
-    final response = await _dio.get('/api/emergency_event/$userId/emergency');
+    final response =
+        await _dio.get('/api/emergency_event/$userId/emergency');
     if (response.data == null) return null;
-    return EmergencyEventModel.fromJson(response.data as Map<String, dynamic>);
+    return EmergencyEventModel.fromJson(
+        response.data as Map<String, dynamic>);
   }
 
+  /// GET /guardians?userId={userId}
   Future<List<GuardianModel>> getGuardians(int userId) async {
     final response = await _dio.get(
       '/guardians',
@@ -31,6 +57,7 @@ class DependentRepository {
         .toList();
   }
 
+  /// POST /guardians/invite?userId={wardId}
   Future<void> inviteGuardian({
     required int wardId,
     required String name,
@@ -39,15 +66,28 @@ class DependentRepository {
   }) async {
     await _dio.post(
       '/guardians/invite',
+      queryParameters: {'userId': wardId},
       data: {
-        'wardId': wardId,
-        'guardianName': name,
-        'guardianPhone': phone,
-        'relationship': relationship,
+        'name': name,
+        'phone': phone,
+        'relation': relationship,
+        'isPrimary': false,
       },
     );
   }
 
+  /// GET /api/devices/{userId}/devices
+  Future<DeviceStatusModel?> getDeviceStatus(int userId) async {
+    try {
+      final response = await _dio.get('/api/devices/$userId/devices');
+      return DeviceStatusModel.fromJson(
+          response.data as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// GET /api/vitals/stream/{userId} — SSE
   Stream<VitalModel> streamVitals(int userId) async* {
     final response = await _dio.get(
       '/api/vitals/stream/$userId',

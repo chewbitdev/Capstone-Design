@@ -40,7 +40,7 @@ class _GuardianRegisterPageState extends ConsumerState<GuardianRegisterPage> {
       await inviteGuardian(
         wardId: wardId,
         name: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
+        phone: _phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), ''),
         relationship: _selectedRelation!,
         repo: ref.read(dependentRepositoryProvider),
       );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/widgets/status_dot.dart';
+import '../../data/models/ward_detail_model.dart';
 import '../../domain/entities/emergency_alert.dart';
 import '../../domain/entities/ward.dart';
 import '../providers/guardian_provider.dart';
@@ -89,7 +90,10 @@ class WardDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final biometric = ref.watch(biometricProvider(ward.id));
+    final wardDetailAsync =
+        ref.watch(wardDetailProvider(int.tryParse(ward.id) ?? 0));
+    // fallback to snapshot biometric from ward list if detail not yet loaded
+    final snapshotBiometric = ref.watch(biometricProvider(ward.id));
     final alerts = ref.watch(alertsByWardProvider(ward.id));
     final isOuting = ward.status == WardStatus.outing;
 
@@ -117,7 +121,13 @@ class WardDetailPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(wardDetailProvider(int.tryParse(ward.id) ?? 0));
+          ref.read(wardsProvider.notifier).reload();
+        },
+        color: AppColors.primary,
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // 프로필 카드
@@ -282,37 +292,74 @@ class WardDetailPage extends ConsumerWidget {
                 ),
               ),
             )
-          else if (biometric == null || !biometric.isActive)
-            _Card(
-              child: const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    '데이터 없음 (오프라인)',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
+          else
+            wardDetailAsync.when(
+              loading: () => _Card(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _BiometricItem(
+                      icon: Icons.favorite_rounded,
+                      label: '심박수',
+                      value: snapshotBiometric != null && snapshotBiometric.isActive
+                          ? '${snapshotBiometric.heartRate}'
+                          : '-',
+                      unit: 'bpm',
+                      wardStatus: ward.status,
+                    ),
+                    _Divider(),
+                    _BiometricItem(
+                      icon: Icons.air_rounded,
+                      label: '호흡수',
+                      value: snapshotBiometric != null && snapshotBiometric.isActive
+                          ? '${snapshotBiometric.respiratoryRate}'
+                          : '-',
+                      unit: '/min',
+                      wardStatus: ward.status,
+                    ),
+                  ],
                 ),
               ),
-            )
-          else
-            _Card(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              error: (_, __) => _Card(
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('데이터 없음 (오프라인)',
+                      style: TextStyle(color: AppColors.textSecondary)),
+                ),
+              ),
+              data: (detail) => Column(
                 children: [
-                  _BiometricItem(
-                    icon: Icons.favorite_rounded,
-                    label: '심박수',
-                    value: '${biometric.heartRate}',
-                    unit: 'bpm',
-                    wardStatus: ward.status,
-                  ),
-                  _Divider(),
-                  _BiometricItem(
-                    icon: Icons.air_rounded,
-                    label: '호흡수',
-                    value: '${biometric.respiratoryRate}',
-                    unit: '/min',
-                    wardStatus: ward.status,
+                  _Card(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _BiometricItem(
+                          icon: Icons.favorite_rounded,
+                          label: '심박수',
+                          value: '${detail.heartRate}',
+                          unit: 'bpm',
+                          wardStatus: ward.status,
+                        ),
+                        _Divider(),
+                        _BiometricItem(
+                          icon: Icons.air_rounded,
+                          label: '호흡수',
+                          value: '${detail.breathRate}',
+                          unit: '/min',
+                          wardStatus: ward.status,
+                        ),
+                        _Divider(),
+                        _BiometricItem(
+                          icon: detail.activityStatus
+                              ? Icons.directions_walk
+                              : Icons.bedtime_outlined,
+                          label: '활동상태',
+                          value: detail.activityStatus ? '활동 중' : '비활동',
+                          unit: '',
+                          wardStatus: ward.status,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -447,6 +494,7 @@ class WardDetailPage extends ConsumerWidget {
 
           const SizedBox(height: 40),
         ],
+        ),
       ),
     );
   }

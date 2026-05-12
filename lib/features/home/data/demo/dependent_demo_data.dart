@@ -8,7 +8,7 @@
 
 import '../models/guardian_model.dart';
 
-const bool kDemoMode = true;
+const bool kDemoMode = false;
 
 // ── 시나리오 선택 (아래 중 하나만 활성화) ──────────────────────
 const _Scenario kScenario = _Scenario.heartIssue;

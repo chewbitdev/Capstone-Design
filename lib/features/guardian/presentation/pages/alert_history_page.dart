@@ -5,8 +5,24 @@ import '../../domain/entities/emergency_alert.dart';
 import '../providers/guardian_provider.dart';
 import 'emergency_alert_page.dart';
 
-class AlertHistoryPage extends ConsumerWidget {
+class AlertHistoryPage extends ConsumerStatefulWidget {
   const AlertHistoryPage({super.key});
+
+  @override
+  ConsumerState<AlertHistoryPage> createState() => _AlertHistoryPageState();
+}
+
+class _AlertHistoryPageState extends ConsumerState<AlertHistoryPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 페이지 진입 시 초대 목록 + 알림 재조회
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(pendingInvitationsProvider);
+      ref.read(alertsProvider.notifier).reload();
+      ref.invalidate(unreadCountProvider);
+    });
+  }
 
   String _timeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
@@ -16,11 +32,20 @@ class AlertHistoryPage extends ConsumerWidget {
     return '${diff.inDays}일 전';
   }
 
+  Future<void> _refresh() async {
+    ref.invalidate(pendingInvitationsProvider);
+    ref.read(alertsProvider.notifier).reload();
+    ref.invalidate(unreadCountProvider);
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final all = ref.watch(alertsProvider);
+    final invitations = ref.watch(pendingInvitationsProvider);
     final active = all.where((a) => !a.isResolved).toList();
     final resolved = all.where((a) => a.isResolved).toList();
+
+    final hasContent = invitations.isNotEmpty || all.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -48,50 +73,64 @@ class AlertHistoryPage extends ConsumerWidget {
             ),
         ],
       ),
-      body: all.isEmpty
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.notifications_none,
-                      size: 48, color: AppColors.textHint),
-                  SizedBox(height: 12),
-                  Text('알림 이력이 없습니다.',
-                      style: TextStyle(color: AppColors.textSecondary)),
-                ],
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        color: AppColors.primary,
+        child: !hasContent
+          ? const SingleChildScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              child: SizedBox(
+                height: 400,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.notifications_none,
+                          size: 48, color: AppColors.textHint),
+                      SizedBox(height: 12),
+                      Text('알림 이력이 없습니다.',
+                          style: TextStyle(color: AppColors.textSecondary)),
+                    ],
+                  ),
+                ),
               ),
             )
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                if (invitations.isNotEmpty) ...[
+                  _SectionLabel('초대 대기 (${invitations.length}건)'),
+                  const SizedBox(height: 8),
+                  ...invitations.map(
+                    (inv) => _InvitationCard(
+                      wardName: inv.wardName,
+                      relation: inv.relation,
+                      timeAgo: _timeAgo(inv.createdAt),
+                      onAccept: () => ref
+                          .read(pendingInvitationsProvider.notifier)
+                          .accept(inv.invitationId),
+                      onDecline: () => ref
+                          .read(pendingInvitationsProvider.notifier)
+                          .reject(inv.invitationId),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 if (active.isNotEmpty) ...[
                   _SectionLabel('미해결 (${active.length}건)'),
                   const SizedBox(height: 8),
                   ...active.map(
-                    (a) => a.type == AlertType.invitation
-                        ? _InvitationCard(
-                            alert: a,
-                            timeAgo: _timeAgo(a.occurredAt),
-                            onAccept: () => ref
-                                .read(alertsProvider.notifier)
-                                .resolveWithMessage(
-                                    a.id,
-                                    '${a.wardName}님의 초대를 수락했습니다.'),
-                            onDecline: () => ref
-                                .read(alertsProvider.notifier)
-                                .dismiss(a.id),
-                          )
-                        : _AlertCard(
-                            alert: a,
-                            timeAgo: _timeAgo(a.occurredAt),
-                            onResolve: () =>
-                                ref.read(alertsProvider.notifier).resolve(a.id),
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => EmergencyAlertPage(alert: a),
-                              ),
-                            ),
-                          ),
+                    (a) => _AlertCard(
+                      alert: a,
+                      timeAgo: _timeAgo(a.occurredAt),
+                      onResolve: () =>
+                          ref.read(alertsProvider.notifier).resolve(a.id),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => EmergencyAlertPage(alert: a),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -108,6 +147,7 @@ class AlertHistoryPage extends ConsumerWidget {
                 ],
               ],
             ),
+        ),
     );
   }
 }
@@ -262,13 +302,15 @@ class _AlertCard extends StatelessWidget {
 
 class _InvitationCard extends StatelessWidget {
   const _InvitationCard({
-    required this.alert,
+    required this.wardName,
+    required this.relation,
     required this.timeAgo,
     required this.onAccept,
     required this.onDecline,
   });
 
-  final EmergencyAlert alert;
+  final String wardName;
+  final String relation;
   final String timeAgo;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
@@ -310,7 +352,7 @@ class _InvitationCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${alert.wardName} · 보호자 초대',
+                        '$wardName · 보호자 초대',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -319,7 +361,7 @@ class _InvitationCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '$timeAgo · ${alert.message}',
+                        '$timeAgo · $relation(으)로 초대되었습니다.',
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,

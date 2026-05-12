@@ -129,10 +129,33 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
     final emergencyAsync = ref.watch(emergencyEventProvider);
     final vitalsAsync = ref.watch(vitalsStreamProvider);
     final guardiansAsync = ref.watch(guardiansProvider);
+    final deviceAsync = ref.watch(deviceStatusProvider);
+
+    // 실제 응급 이벤트 감지 시 애니메이션 트리거
+    if (!kDemoMode) {
+      ref.listen(emergencyEventProvider, (prev, next) {
+        final hasEmergency = next.valueOrNull != null;
+        final hadEmergency = prev?.valueOrNull != null;
+        if (hasEmergency && !hadEmergency && mounted) {
+          setState(() {
+            _demoEmergency = true;
+            _showNotification = true;
+          });
+          _pulseController.repeat(reverse: true);
+          Timer(const Duration(seconds: 8), () {
+            if (mounted) setState(() => _showNotification = false);
+          });
+        } else if (!hasEmergency && hadEmergency && mounted) {
+          setState(() => _demoEmergency = false);
+          _pulseController.stop();
+          _pulseController.reset();
+        }
+      });
+    }
 
     final isEmergency = kDemoMode
         ? _demoEmergency
-        : emergencyAsync.valueOrNull != null;
+        : (_demoEmergency || emergencyAsync.valueOrNull != null);
     final statusMessage = kDemoMode
         ? (_demoEmergency ? _eventTypeLabel(DependentDemoData.emergencyType) : '정상')
         : _eventTypeLabel(emergencyAsync.valueOrNull?.eventType);
@@ -145,6 +168,21 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
     final breathRate = kDemoMode
         ? _breathRate.toString()
         : vitalsAsync.valueOrNull?.breathRate?.toString() ?? '--';
+
+    // SSE 데이터가 실시간으로 오는 중이면 심박·호흡 센서 연결됨으로 판단
+    final sseActive = !kDemoMode && vitalsAsync.hasValue && vitalsAsync.valueOrNull != null;
+    final sseHasHeart = sseActive && (vitalsAsync.valueOrNull?.heartRate != null);
+
+    final deviceStatus = deviceAsync.valueOrNull;
+    final deviceConnected = kDemoMode
+        ? DependentDemoData.raspberryConnected
+        : (sseActive || (deviceStatus?.raspberryConnected ?? false));
+    final heartSensorConnected = kDemoMode
+        ? DependentDemoData.raspberryConnected
+        : (sseHasHeart || (deviceStatus?.heartSensorConnected ?? false));
+    final fallSensorConnected = kDemoMode
+        ? DependentDemoData.raspberryConnected
+        : (deviceStatus?.fallSensorConnected ?? false);
 
     return Stack(
       children: [
@@ -171,7 +209,10 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
         leadingWidth: 120,
         title: _StatusBadge(
           isEmergency: isEmergency,
-          message: isEmergency ? statusMessage : '정상',
+          isOffline: !deviceConnected && !isEmergency,
+          message: isEmergency
+              ? statusMessage
+              : (!deviceConnected ? '오프라인' : '정상'),
         ),
         centerTitle: true,
         actions: [
@@ -188,7 +229,16 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
           const SizedBox(width: 4),
         ],
       ),
-      body: CustomScrollView(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(userProfileProvider);
+          ref.invalidate(guardiansProvider);
+          ref.invalidate(emergencyEventProvider);
+          ref.invalidate(deviceStatusProvider);
+        },
+        color: AppColors.primaryGreen,
+        child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
@@ -235,15 +285,9 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
                 _SectionLabel('센서 연결 상태'),
                 const SizedBox(height: 10),
                 _DevicePanel(
-                  raspberryConnected: kDemoMode
-                      ? DependentDemoData.raspberryConnected
-                      : false,
-                  heartSensorConnected: kDemoMode
-                      ? DependentDemoData.heartSensorConnected
-                      : false,
-                  fallSensorConnected: kDemoMode
-                      ? DependentDemoData.fallSensorConnected
-                      : false,
+                  raspberryConnected: deviceConnected,
+                  heartSensorConnected: heartSensorConnected,
+                  fallSensorConnected: fallSensorConnected,
                 ),
 
                 const SizedBox(height: 24),
@@ -323,6 +367,7 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
         ],
       ),
         ),
+        ), // RefreshIndicator
 
         // ── 빨간 테두리 번쩍 효과 ──────────────────────────────────────
         if (_demoEmergency)
@@ -899,16 +944,32 @@ class _EmptyGuardians extends StatelessWidget {
 // ── 상태 배지 ────────────────────────────────────────────────────────────────
 
 class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.isEmergency, required this.message});
+  const _StatusBadge({
+    required this.isEmergency,
+    required this.message,
+    this.isOffline = false,
+  });
   final bool isEmergency;
+  final bool isOffline;
   final String message;
 
   @override
   Widget build(BuildContext context) {
+    final Color bgColor = isEmergency
+        ? AppColors.alertRed
+        : isOffline
+            ? const Color(0xFF9E9E9E)
+            : AppColors.primaryGreen;
+    final IconData icon = isEmergency
+        ? Icons.error_outline
+        : isOffline
+            ? Icons.wifi_off
+            : Icons.check_circle_outline;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: isEmergency ? AppColors.alertRed : AppColors.primaryGreen,
+        color: bgColor,
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
@@ -917,11 +978,7 @@ class _StatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isEmergency ? Icons.error_outline : Icons.check_circle_outline,
-            size: 15,
-            color: Colors.white,
-          ),
+          Icon(icon, size: 15, color: Colors.white),
           const SizedBox(width: 5),
           Flexible(
             child: Text(

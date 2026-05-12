@@ -1,9 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../data/models/event_detail_model.dart';
+import '../../data/repositories/guardian_repository.dart';
 import '../../domain/entities/emergency_alert.dart';
+import '../providers/guardian_provider.dart';
 
-class EmergencyAlertPage extends StatelessWidget {
+final _eventDetailProvider =
+    FutureProvider.family<EventDetailModel?, int>((ref, eventId) async {
+  try {
+    return await ref
+        .watch(guardianRepositoryProvider)
+        .getEmergencyEventDetail(eventId);
+  } catch (_) {
+    return null;
+  }
+});
+
+class EmergencyAlertPage extends ConsumerWidget {
   const EmergencyAlertPage({super.key, required this.alert});
 
   final EmergencyAlert alert;
@@ -21,7 +36,13 @@ class EmergencyAlertPage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final eventId = int.tryParse(alert.id);
+    final detailAsync =
+        eventId != null ? ref.watch(_eventDetailProvider(eventId)) : null;
+
+    final detail = detailAsync?.valueOrNull;
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -52,7 +73,7 @@ class EmergencyAlertPage extends StatelessWidget {
                 color: AppColors.dangerSurface,
                 borderRadius: BorderRadius.circular(16),
                 border:
-                    Border.all(color: AppColors.danger.withOpacity(0.3)),
+                    Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
               ),
               child: Column(
                 children: [
@@ -69,7 +90,7 @@ class EmergencyAlertPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    alert.message,
+                    detail?.description ?? alert.message,
                     style: const TextStyle(
                       fontSize: 14,
                       color: AppColors.textSecondary,
@@ -92,15 +113,20 @@ class EmergencyAlertPage extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _InfoRow(label: '피보호자', value: alert.wardName),
+                  _InfoRow(
+                      label: '피보호자',
+                      value: detail?.name ?? alert.wardName),
                   const Divider(height: 20, color: AppColors.divider),
                   _InfoRow(label: '알림 유형', value: alert.type.label),
                   const Divider(height: 20, color: AppColors.divider),
-                  _InfoRow(label: '발생 시각', value: _timeAgo(alert.occurredAt)),
+                  _InfoRow(
+                      label: '발생 시각',
+                      value: _timeAgo(
+                          detail?.occurredAt ?? alert.occurredAt)),
                   const Divider(height: 20, color: AppColors.divider),
                   _InfoRow(
                       label: '상세',
-                      value: alert.type.description),
+                      value: detail?.description ?? alert.type.description),
                 ],
               ),
             ),
@@ -121,13 +147,13 @@ class EmergencyAlertPage extends StatelessWidget {
               icon: const Icon(Icons.local_hospital),
               label: const Text(
                 '119 응급 신고',
-                style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
-              onPressed: () => _call('010-0000-0000'),
+              onPressed: () =>
+                  _call('010-0000-0000'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: const BorderSide(color: AppColors.primary),
@@ -137,7 +163,7 @@ class EmergencyAlertPage extends StatelessWidget {
               ),
               icon: const Icon(Icons.phone),
               label: Text(
-                '${alert.wardName}님에게 전화',
+                '${detail?.name ?? alert.wardName}님에게 전화',
                 style: const TextStyle(fontSize: 16),
               ),
             ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -8,10 +9,38 @@ import '../widgets/ward_status_card.dart';
 import 'alert_history_page.dart';
 import 'ward_detail_page.dart';
 
-class CaregiverHomePage extends ConsumerWidget {
+class CaregiverHomePage extends ConsumerStatefulWidget {
   const CaregiverHomePage({super.key});
 
-  Future<void> _showLogoutDialog(BuildContext context) async {
+  @override
+  ConsumerState<CaregiverHomePage> createState() => _CaregiverHomePageState();
+}
+
+class _CaregiverHomePageState extends ConsumerState<CaregiverHomePage> {
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // 30초마다 피보호자 목록 + 알림 수 자동 갱신
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _refresh();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    ref.read(wardsProvider.notifier).reload();
+    ref.invalidate(unreadCountProvider);
+    ref.read(alertsProvider.notifier).reload();
+  }
+
+  Future<void> _showLogoutDialog() async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -31,7 +60,7 @@ class CaregiverHomePage extends ConsumerWidget {
         ],
       ),
     );
-    if (ok != true || !context.mounted) return;
+    if (ok != true || !mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -40,9 +69,10 @@ class CaregiverHomePage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final wards = ref.watch(wardsProvider);
     final alerts = ref.watch(activeAlertsProvider);
+    final unreadCount = ref.watch(unreadCountProvider).valueOrNull ?? alerts.length;
 
     final emergencyCount = wards.where((w) => w.status == WardStatus.emergency).length;
     final warningCount = wards.where((w) => w.status == WardStatus.warning).length;
@@ -71,18 +101,22 @@ class CaregiverHomePage extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: AppColors.textSecondary),
-            onPressed: () => _showLogoutDialog(context),
+            onPressed: _showLogoutDialog,
           ),
           Stack(
             children: [
               IconButton(
                 icon: const Icon(Icons.notifications_outlined,
                     color: AppColors.textPrimary),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AlertHistoryPage()),
-                ),
+                onPressed: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AlertHistoryPage()),
+                  );
+                  // 알림 이력에서 돌아올 때 배지 갱신
+                  ref.invalidate(unreadCountProvider);
+                },
               ),
-              if (alerts.isNotEmpty)
+              if (unreadCount > 0)
                 Positioned(
                   right: 8,
                   top: 8,
@@ -95,7 +129,7 @@ class CaregiverHomePage extends ConsumerWidget {
                     ),
                     child: Center(
                       child: Text(
-                        '${alerts.length}',
+                        '$unreadCount',
                         style: const TextStyle(
                             fontSize: 10,
                             color: Colors.white,
@@ -109,100 +143,106 @@ class CaregiverHomePage extends ConsumerWidget {
           const SizedBox(width: 4),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          // 요약 카드
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _SummaryCard(
-                      label: '긴급',
-                      value: '$emergencyCount건',
-                      icon: Icons.warning_rounded,
-                      activeColor: AppColors.danger,
-                      activeSurface: AppColors.dangerSurface,
-                      isActive: emergencyCount > 0,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _SummaryCard(
-                      label: '주의',
-                      value: '$warningCount건',
-                      icon: Icons.info_outline,
-                      activeColor: AppColors.warning,
-                      activeSurface: AppColors.warningSurface,
-                      isActive: warningCount > 0,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _SummaryCard(
-                      label: '외출',
-                      value: '$outingCount명',
-                      icon: Icons.exit_to_app,
-                      activeColor: AppColors.outing,
-                      activeSurface: AppColors.outingSurface,
-                      isActive: outingCount > 0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // 피보호자 목록 헤더
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text(
-                '피보호자 목록',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ),
-          ),
-
-          // 피보호자 카드 목록
-          wards.isEmpty
-              ? const SliverFillRemaining(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.person_add_outlined,
-                            size: 48, color: AppColors.textHint),
-                        SizedBox(height: 12),
-                        Text(
-                          '등록된 피보호자가 없습니다.',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) => WardStatusCard(
-                      ward: wards[i],
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => WardDetailPage(ward: wards[i]),
-                        ),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        color: AppColors.primary,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // 요약 카드
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _SummaryCard(
+                        label: '긴급',
+                        value: '$emergencyCount건',
+                        icon: Icons.warning_rounded,
+                        activeColor: AppColors.danger,
+                        activeSurface: AppColors.dangerSurface,
+                        isActive: emergencyCount > 0,
                       ),
                     ),
-                    childCount: wards.length,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _SummaryCard(
+                        label: '주의',
+                        value: '$warningCount건',
+                        icon: Icons.info_outline,
+                        activeColor: AppColors.warning,
+                        activeSurface: AppColors.warningSurface,
+                        isActive: warningCount > 0,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _SummaryCard(
+                        label: '외출',
+                        value: '$outingCount명',
+                        icon: Icons.exit_to_app,
+                        activeColor: AppColors.outing,
+                        activeSurface: AppColors.outingSurface,
+                        isActive: outingCount > 0,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // 피보호자 목록 헤더
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Text(
+                  '피보호자 목록',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[600],
                   ),
                 ),
+              ),
+            ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
-        ],
+            // 피보호자 카드 목록
+            wards.isEmpty
+                ? const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person_add_outlined,
+                              size: 48, color: AppColors.textHint),
+                          SizedBox(height: 12),
+                          Text(
+                            '등록된 피보호자가 없습니다.',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, i) => WardStatusCard(
+                        ward: wards[i],
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => WardDetailPage(ward: wards[i]),
+                          ),
+                        ),
+                      ),
+                      childCount: wards.length,
+                    ),
+                  ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          ],
+        ),
       ),
     );
   }
