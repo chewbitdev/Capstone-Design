@@ -1,74 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../home/data/demo/dependent_demo_data.dart';
+import '../../../home/data/models/emergency_event_model.dart';
+import '../../../home/presentation/providers/dependent_home_provider.dart';
 
 enum _AlertLevel { danger, warning, info }
 
-class _NotificationItem {
-  final String title;
-  final String body;
-  final String time;
-  final _AlertLevel level;
-  final bool isRead;
-
-  const _NotificationItem({
-    required this.title,
-    required this.body,
-    required this.time,
-    required this.level,
-    this.isRead = false,
-  });
-}
-
-const _dummyNotifications = [
-  _NotificationItem(
-    title: '심박수 이상 감지',
-    body: '심박수가 120bpm을 초과했습니다. 현재 측정값: 127bpm\n보호자에게 자동으로 알림을 전송했습니다.',
-    time: '방금 전',
-    level: _AlertLevel.danger,
-  ),
-  _NotificationItem(
-    title: '호흡수 이상 감지',
-    body: '호흡수가 정상 범위를 벗어났습니다. 현재 측정값: 24회/분\n보호자에게 자동으로 알림을 전송했습니다.',
-    time: '12분 전',
-    level: _AlertLevel.warning,
-  ),
-  _NotificationItem(
-    title: '낙상 감지',
-    body: '낙상이 감지되었습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
-    time: '1시간 전',
-    level: _AlertLevel.danger,
-    isRead: true,
-  ),
-  _NotificationItem(
-    title: '심박수 이상 감지',
-    body: '심박수가 40bpm 미만으로 떨어졌습니다. 현재 측정값: 38bpm\n보호자에게 자동으로 알림을 전송했습니다.',
-    time: '3시간 전',
-    level: _AlertLevel.danger,
-    isRead: true,
-  ),
-  _NotificationItem(
-    title: '장시간 무활동 감지',
-    body: '2시간 이상 움직임이 감지되지 않았습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
-    time: '어제 오후 3:20',
-    level: _AlertLevel.warning,
-    isRead: true,
-  ),
-  _NotificationItem(
-    title: '센서 연결 끊김',
-    body: '라즈베리파이와 연결이 끊겼습니다. 기기 상태를 확인해주세요.',
-    time: '어제 오전 11:05',
-    level: _AlertLevel.info,
-    isRead: true,
-  ),
-];
-
-class NotificationCenterPage extends StatelessWidget {
+class NotificationCenterPage extends ConsumerWidget {
   const NotificationCenterPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final unread = _dummyNotifications.where((n) => !n.isRead).toList();
-    final read = _dummyNotifications.where((n) => n.isRead).toList();
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 데모 모드: demoEventHistoryProvider, 실제 모드: eventHistoryProvider
+    final demoEvents = kDemoMode ? ref.watch(demoEventHistoryProvider) : null;
+    final historyAsync = kDemoMode
+        ? AsyncValue.data(demoEvents!)
+        : ref.watch(eventHistoryProvider);
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -88,8 +36,15 @@ class NotificationCenterPage extends StatelessWidget {
           ),
         ),
       ),
-      body: _dummyNotifications.isEmpty
-          ? const Center(
+      body: historyAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => const Center(
+          child: Text('알림을 불러올 수 없습니다.',
+              style: TextStyle(color: AppColors.textSecondary)),
+        ),
+        data: (events) {
+          if (events.isEmpty) {
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -100,23 +55,30 @@ class NotificationCenterPage extends StatelessWidget {
                       style: TextStyle(color: AppColors.textSecondary)),
                 ],
               ),
-            )
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (unread.isNotEmpty) ...[
-                  _SectionLabel('읽지 않음 (${unread.length}건)'),
-                  const SizedBox(height: 8),
-                  ...unread.map((item) => _NotificationCard(item: item)),
-                  const SizedBox(height: 16),
-                ],
-                if (read.isNotEmpty) ...[
-                  _SectionLabel('읽음 (${read.length}건)'),
-                  const SizedBox(height: 8),
-                  ...read.map((item) => _NotificationCard(item: item)),
-                ],
+            );
+          }
+
+          final unread = events.where((e) => e.status == 'PENDING').toList();
+          final read = events.where((e) => e.status != 'PENDING').toList();
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (unread.isNotEmpty) ...[
+                _SectionLabel('읽지 않음 (${unread.length}건)'),
+                const SizedBox(height: 8),
+                ...unread.map((e) => _NotificationCard(event: e, isRead: false)),
+                const SizedBox(height: 16),
               ],
-            ),
+              if (read.isNotEmpty) ...[
+                _SectionLabel('읽음 (${read.length}건)'),
+                const SizedBox(height: 8),
+                ...read.map((e) => _NotificationCard(event: e, isRead: true)),
+              ],
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -139,46 +101,87 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({required this.item});
-  final _NotificationItem item;
+  const _NotificationCard({required this.event, required this.isRead});
 
-  Color get _color => switch (item.level) {
-        _AlertLevel.danger => AppColors.danger,
-        _AlertLevel.warning => AppColors.warning,
-        _AlertLevel.info => AppColors.statusOffline,
+  final EmergencyEventModel event;
+  final bool isRead;
+
+  String get _title => switch (event.eventType) {
+        'FALL' => '낙상 감지',
+        'HEART_ISSUE' => '심박수 이상 감지',
+        'BREATH_ISSUE' => '호흡수 이상 감지',
+        'VITAL_ISSUE' => '심박수·호흡수 동시 이상',
+        'MANUAL_ALERT' => '도움 요청 전송됨',
+        _ => '응급 알림',
       };
 
-  Color get _surface => switch (item.level) {
-        _AlertLevel.danger => AppColors.dangerSurface,
-        _AlertLevel.warning => AppColors.warningSurface,
-        _AlertLevel.info => const Color(0xFFF5F5F5),
+  String get _body => switch (event.eventType) {
+        'FALL' => '낙상이 감지되었습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
+        'HEART_ISSUE' => '심박수가 정상 범위를 벗어났습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
+        'BREATH_ISSUE' => '호흡수가 정상 범위를 벗어났습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
+        'VITAL_ISSUE' => '심박수와 호흡수에 동시에 이상이 감지되었습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
+        'MANUAL_ALERT' => '도움 요청 버튼이 눌렸습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
+        _ => '응급 상황이 감지되었습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
       };
 
-  IconData get _icon => switch (item.level) {
-        _AlertLevel.danger => Icons.warning_rounded,
-        _AlertLevel.warning => Icons.info_outline,
-        _AlertLevel.info => Icons.sensors_off_outlined,
+  _AlertLevel get _level => switch (event.eventType) {
+        'FALL' => _AlertLevel.danger,
+        'VITAL_ISSUE' => _AlertLevel.danger,
+        'MANUAL_ALERT' => _AlertLevel.danger,
+        'HEART_ISSUE' => _AlertLevel.warning,
+        'BREATH_ISSUE' => _AlertLevel.warning,
+        _ => _AlertLevel.info,
       };
 
-  String get _levelLabel => switch (item.level) {
+  String get _levelLabel => switch (_level) {
         _AlertLevel.danger => '심각',
         _AlertLevel.warning => '주의',
         _AlertLevel.info => '정보',
       };
 
+  Color get _color => switch (_level) {
+        _AlertLevel.danger => AppColors.danger,
+        _AlertLevel.warning => AppColors.warning,
+        _AlertLevel.info => AppColors.statusOffline,
+      };
+
+  Color get _surface => switch (_level) {
+        _AlertLevel.danger => AppColors.dangerSurface,
+        _AlertLevel.warning => AppColors.warningSurface,
+        _AlertLevel.info => const Color(0xFFF5F5F5),
+      };
+
+  IconData get _icon => switch (event.eventType) {
+        'FALL' => Icons.warning_rounded,
+        'VITAL_ISSUE' => Icons.warning_rounded,
+        'MANUAL_ALERT' => Icons.pan_tool_rounded,
+        'HEART_ISSUE' => Icons.favorite_border,
+        'BREATH_ISSUE' => Icons.air,
+        _ => Icons.sensors_off_outlined,
+      };
+
+  String _timeAgo() {
+    final diff = DateTime.now().difference(event.createdAt);
+    if (diff.inMinutes < 1) return '방금 전';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+    if (diff.inHours < 24) return '${diff.inHours}시간 전';
+    if (diff.inDays == 1) return '어제';
+    return '${diff.inDays}일 전';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final color = item.isRead ? AppColors.textHint : _color;
-    final surface = item.isRead ? const Color(0xFFF5F5F5) : _surface;
+    final displayColor = isRead ? AppColors.textHint : _color;
+    final displaySurface = isRead ? const Color(0xFFF5F5F5) : _surface;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: item.isRead ? AppColors.surface : Colors.white,
+        color: isRead ? AppColors.surface : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: item.isRead
+          color: isRead
               ? AppColors.border
               : _color.withValues(alpha: 0.25),
         ),
@@ -189,8 +192,9 @@ class _NotificationCard extends StatelessWidget {
           Container(
             width: 36,
             height: 36,
-            decoration: BoxDecoration(color: surface, shape: BoxShape.circle),
-            child: Icon(_icon, size: 18, color: color),
+            decoration:
+                BoxDecoration(color: displaySurface, shape: BoxShape.circle),
+            child: Icon(_icon, size: 18, color: displayColor),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -201,18 +205,14 @@ class _NotificationCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        item.title,
+                        _title,
                         style: TextStyle(
                           fontSize: 14,
-                          fontWeight: item.isRead
-                              ? FontWeight.normal
-                              : FontWeight.w600,
-                          color: item.isRead
+                          fontWeight:
+                              isRead ? FontWeight.normal : FontWeight.w600,
+                          color: isRead
                               ? AppColors.textSecondary
                               : AppColors.textPrimary,
-                          decoration: item.isRead
-                              ? TextDecoration.none
-                              : null,
                         ),
                       ),
                     ),
@@ -221,7 +221,7 @@ class _NotificationCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
+                        color: displayColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -229,7 +229,7 @@ class _NotificationCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: color,
+                          color: displayColor,
                         ),
                       ),
                     ),
@@ -237,13 +237,13 @@ class _NotificationCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item.body,
+                  _body,
                   style: const TextStyle(
                       fontSize: 12, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item.time,
+                  _timeAgo(),
                   style: const TextStyle(
                       fontSize: 11, color: AppColors.textHint),
                 ),

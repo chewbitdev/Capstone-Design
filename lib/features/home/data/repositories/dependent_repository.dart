@@ -45,6 +45,15 @@ class DependentRepository {
         response.data as Map<String, dynamic>);
   }
 
+  /// GET /api/emergency_event/{userId}/history
+  Future<List<EmergencyEventModel>> getEventHistory(int userId) async {
+    final response = await _dio.get('/api/emergency_event/$userId/history');
+    final list = response.data as List<dynamic>? ?? [];
+    return list
+        .map((e) => EmergencyEventModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// GET /guardians?userId={userId}
   Future<List<GuardianModel>> getGuardians(int userId) async {
     final response = await _dio.get(
@@ -109,8 +118,8 @@ class DependentRepository {
         buffer = buffer.substring(idx + 2);
 
         for (final line in event.split('\n')) {
-          if (line.startsWith('data: ')) {
-            final jsonStr = line.substring(6).trim();
+          if (line.startsWith('data:')) {
+            final jsonStr = line.substring(5).trim();
             if (jsonStr.isNotEmpty && jsonStr != 'null') {
               try {
                 yield VitalModel.fromJson(

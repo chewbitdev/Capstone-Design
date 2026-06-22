@@ -121,6 +121,10 @@ class AlertsNotifier extends StateNotifier<List<EmergencyAlert>> {
     ];
   }
 
+  void addAlert(EmergencyAlert alert) {
+    state = [alert, ...state];
+  }
+
   void dismiss(String alertId) {
     state = state.where((a) => a.id != alertId).toList();
   }

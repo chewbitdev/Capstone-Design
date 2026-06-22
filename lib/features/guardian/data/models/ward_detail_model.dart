@@ -34,7 +34,9 @@ class WardDetailModel {
 
   static DateTime _parseDate(dynamic value) {
     if (value == null) return DateTime.now();
-    if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
     if (value is List && value.length >= 3) {
       return DateTime(
         value[0] as int, value[1] as int, value[2] as int,

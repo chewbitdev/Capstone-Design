@@ -2,8 +2,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/theme/app_colors.dart';
-import '../../domain/entities/biometric_data.dart';
-import '../../domain/entities/biometric_history.dart';
 import '../../domain/entities/emergency_alert.dart';
 import '../providers/biometric_history_provider.dart';
 import '../providers/guardian_provider.dart';
@@ -45,9 +43,6 @@ class _BiometricHistoryPageState extends ConsumerState<BiometricHistoryPage>
     _tabController.dispose();
     super.dispose();
   }
-
-  double _getValue(BiometricRecord r) =>
-      _metricIndex == 0 ? r.heartRate.toDouble() : r.respiratoryRate.toDouble();
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +191,6 @@ class _BiometricHistoryPageState extends ConsumerState<BiometricHistoryPage>
                   wardId: widget.wardId,
                   period: _Period.daily,
                   metricIndex: _metricIndex,
-                  getValue: _getValue,
                   unit: _units[_metricIndex],
                   color: _metricColors[_metricIndex],
                 ),
@@ -204,7 +198,6 @@ class _BiometricHistoryPageState extends ConsumerState<BiometricHistoryPage>
                   wardId: widget.wardId,
                   period: _Period.weekly,
                   metricIndex: _metricIndex,
-                  getValue: _getValue,
                   unit: _units[_metricIndex],
                   color: _metricColors[_metricIndex],
                 ),
@@ -212,7 +205,6 @@ class _BiometricHistoryPageState extends ConsumerState<BiometricHistoryPage>
                   wardId: widget.wardId,
                   period: _Period.monthly,
                   metricIndex: _metricIndex,
-                  getValue: _getValue,
                   unit: _units[_metricIndex],
                   color: _metricColors[_metricIndex],
                 ),
@@ -338,7 +330,6 @@ class _ChartTab extends ConsumerWidget {
     required this.wardId,
     required this.period,
     required this.metricIndex,
-    required this.getValue,
     required this.unit,
     required this.color,
   });
@@ -346,216 +337,19 @@ class _ChartTab extends ConsumerWidget {
   final String wardId;
   final _Period period;
   final int metricIndex;
-  final double Function(BiometricRecord) getValue;
   final String unit;
   final Color color;
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final records = switch (period) {
-      _Period.daily => ref.watch(dailyRecordsProvider(wardId)),
-      _Period.weekly => ref.watch(weeklyRecordsProvider(wardId)),
-      _Period.monthly => ref.watch(monthlyRecordsProvider(wardId)),
-    };
+  String get _typeStr => metricIndex == 0 ? 'HEART' : 'BREATH';
+  String get _periodStr => switch (period) {
+        _Period.daily => 'TODAY',
+        _Period.weekly => 'WEEK',
+        _Period.monthly => 'MONTH',
+      };
 
-    if (records.isEmpty) {
-      return const Center(
-        child: Text('데이터 없음', style: TextStyle(color: AppColors.textHint)),
-      );
-    }
-
-    final values = records.map(getValue).toList();
-    final minVal = (values.reduce((a, b) => a < b ? a : b) - 8).clamp(0, 300).toDouble();
-    final maxVal = values.reduce((a, b) => a > b ? a : b) + 8;
-    final avg = values.reduce((a, b) => a + b) / values.length;
-    final minV = values.reduce((a, b) => a < b ? a : b);
-    final maxV = values.reduce((a, b) => a > b ? a : b);
-
-    final spots = records.asMap().entries
-        .map((e) => FlSpot(e.key.toDouble(), getValue(e.value)))
-        .toList();
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // 통계 요약 카드
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _StatItem(label: '평균', value: avg.toStringAsFixed(0), unit: unit, color: color),
-              Container(width: 1, height: 36, color: AppColors.border),
-              _StatItem(label: '최솟값', value: minV.toStringAsFixed(0), unit: unit, color: AppColors.textSecondary),
-              Container(width: 1, height: 36, color: AppColors.border),
-              _StatItem(label: '최댓값', value: maxV.toStringAsFixed(0), unit: unit, color: AppColors.danger),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // 차트
-        Container(
-          padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                minY: minVal,
-                maxY: maxVal,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  getDrawingHorizontalLine: (_) => FlLine(
-                    color: AppColors.border,
-                    strokeWidth: 1,
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 32,
-                      getTitlesWidget: (v, _) => Text(
-                        v.toInt().toString(),
-                        style: const TextStyle(
-                            fontSize: 9, color: AppColors.textHint),
-                      ),
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: _bottomInterval(records.length),
-                      getTitlesWidget: (v, _) {
-                        final idx = v.toInt();
-                        if (idx < 0 || idx >= records.length) {
-                          return const SizedBox();
-                        }
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            _bottomLabel(records[idx].time, period),
-                            style: const TextStyle(
-                                fontSize: 9, color: AppColors.textHint),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                ),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots,
-                    isCurved: true,
-                    color: color,
-                    barWidth: 2.5,
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: color.withValues(alpha: 0.08),
-                    ),
-                    dotData: FlDotData(
-                      show: records.length <= 7,
-                      getDotPainter: (_, __, ___, ____) =>
-                          FlDotCirclePainter(
-                        radius: 3,
-                        color: color,
-                        strokeWidth: 1.5,
-                        strokeColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => AppColors.textPrimary,
-                    getTooltipItems: (spots) => spots.map((s) {
-                      final idx = s.x.toInt();
-                      final record = records[idx];
-                      return LineTooltipItem(
-                        '${_bottomLabel(record.time, period)}\n${s.y.toStringAsFixed(0)} $unit',
-                        const TextStyle(fontSize: 11, color: Colors.white),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // 데이터 목록
-        Text(
-          '상세 기록',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[600],
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...records.reversed.map((r) {
-          final val = getValue(r);
-          final isHigh = val > (metricIndex == 0 ? 100 : 20);
-          final isLow = val < (metricIndex == 0 ? 50 : 12);
-          final isAbnormal = isHigh || isLow;
-          return Container(
-            margin: const EdgeInsets.only(bottom: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isAbnormal
-                    ? AppColors.danger.withValues(alpha: 0.3)
-                    : AppColors.border,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  isAbnormal ? Icons.warning_rounded : Icons.check_circle_outline,
-                  size: 14,
-                  color: isAbnormal ? AppColors.danger : AppColors.statusNormal,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _fullLabel(r.time, period),
-                  style: const TextStyle(
-                      fontSize: 13, color: AppColors.textSecondary),
-                ),
-                const Spacer(),
-                Text(
-                  '${val.toStringAsFixed(0)} $unit',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: isAbnormal ? AppColors.danger : color,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-      ],
-    );
-  }
+  bool _isAbnormal(int val) => metricIndex == 0
+      ? (val > 100 || val < 50)
+      : (val > 20 || val < 12);
 
   double _bottomInterval(int count) {
     if (count <= 7) return 1;
@@ -563,19 +357,214 @@ class _ChartTab extends ConsumerWidget {
     return (count / 6).ceilToDouble();
   }
 
-  String _bottomLabel(DateTime t, _Period p) => switch (p) {
-        _Period.daily => '${t.hour}시',
-        _Period.weekly => _weekday(t.weekday),
-        _Period.monthly => '${t.day}일',
-      };
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final key = (wardId: wardId, type: _typeStr, period: _periodStr);
+    final statsAsync = ref.watch(vitalStatsProvider(key));
 
-  String _fullLabel(DateTime t, _Period p) => switch (p) {
-        _Period.daily => '${t.hour.toString().padLeft(2, '0')}:00',
-        _Period.weekly => '${t.month}/${t.day} (${_weekday(t.weekday)})',
-        _Period.monthly => '${t.month}/${t.day}',
-      };
+    return statsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Center(
+        child: Text('데이터를 불러올 수 없습니다.', style: TextStyle(color: AppColors.textHint)),
+      ),
+      data: (stats) {
+        if (stats.graphData.isEmpty) {
+          return const Center(
+            child: Text('데이터 없음', style: TextStyle(color: AppColors.textHint)),
+          );
+        }
 
-  String _weekday(int w) => ['월', '화', '수', '목', '금', '토', '일'][w - 1];
+        final graphData = stats.graphData;
+        final minVal = (stats.min - 8).clamp(0, 300).toDouble();
+        final maxVal = (stats.max + 8).toDouble();
+
+        final spots = graphData.asMap().entries
+            .map((e) => FlSpot(e.key.toDouble(), e.value.value.toDouble()))
+            .toList();
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // 통계 요약 카드
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _StatItem(label: '평균', value: stats.avg.toString(), unit: unit, color: color),
+                  Container(width: 1, height: 36, color: AppColors.border),
+                  _StatItem(label: '최솟값', value: stats.min.toString(), unit: unit, color: AppColors.textSecondary),
+                  Container(width: 1, height: 36, color: AppColors.border),
+                  _StatItem(label: '최댓값', value: stats.max.toString(), unit: unit, color: AppColors.danger),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 차트
+            Container(
+              padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: SizedBox(
+                height: 200,
+                child: LineChart(
+                  LineChartData(
+                    minY: minVal,
+                    maxY: maxVal,
+                    gridData: FlGridData(
+                      show: true,
+                      drawVerticalLine: false,
+                      getDrawingHorizontalLine: (_) => FlLine(
+                        color: AppColors.border,
+                        strokeWidth: 1,
+                      ),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    titlesData: FlTitlesData(
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 32,
+                          getTitlesWidget: (v, _) => Text(
+                            v.toInt().toString(),
+                            style: const TextStyle(
+                                fontSize: 9, color: AppColors.textHint),
+                          ),
+                        ),
+                      ),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          interval: _bottomInterval(graphData.length),
+                          getTitlesWidget: (v, _) {
+                            final idx = v.toInt();
+                            if (idx < 0 || idx >= graphData.length) {
+                              return const SizedBox();
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                graphData[idx].label,
+                                style: const TextStyle(
+                                    fontSize: 9, color: AppColors.textHint),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                      topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                    ),
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: spots,
+                        isCurved: true,
+                        color: color,
+                        barWidth: 2.5,
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: color.withValues(alpha: 0.08),
+                        ),
+                        dotData: FlDotData(
+                          show: graphData.length <= 7,
+                          getDotPainter: (_, __, ___, ____) =>
+                              FlDotCirclePainter(
+                            radius: 3,
+                            color: color,
+                            strokeWidth: 1.5,
+                            strokeColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        getTooltipColor: (_) => AppColors.textPrimary,
+                        getTooltipItems: (touchedSpots) =>
+                            touchedSpots.map((s) {
+                          final idx = s.x.toInt();
+                          final label = idx >= 0 && idx < graphData.length
+                              ? graphData[idx].label
+                              : '';
+                          return LineTooltipItem(
+                            '$label\n${s.y.toStringAsFixed(0)} $unit',
+                            const TextStyle(fontSize: 11, color: Colors.white),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 데이터 목록 (detailList는 이미 내림차순)
+            Text(
+              '상세 기록',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...stats.detailList.map((item) {
+              final abnormal = _isAbnormal(item.value);
+              return Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: abnormal
+                        ? AppColors.danger.withValues(alpha: 0.3)
+                        : AppColors.border,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      abnormal ? Icons.warning_rounded : Icons.check_circle_outline,
+                      size: 14,
+                      color: abnormal ? AppColors.danger : AppColors.statusNormal,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      item.label,
+                      style: const TextStyle(
+                          fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${item.value} $unit',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: abnormal ? AppColors.danger : color,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
 }
 
 // ── 통계 아이템 ──────────────────────────────────────────────────────────────
@@ -621,27 +610,26 @@ class _AlertHistoryTab extends ConsumerWidget {
   final String wardId;
 
   Color _alertColor(AlertType t) => switch (t) {
-        AlertType.fall => AppColors.danger,
-        AlertType.sos => AppColors.danger,
-        AlertType.heartRateAbnormal => AppColors.warning,
+        AlertType.fall || AlertType.vitalIssue || AlertType.manualAlert => AppColors.danger,
+        AlertType.heartRateAbnormal || AlertType.breathRateAbnormal => AppColors.warning,
         AlertType.inactivity => AppColors.statusOffline,
         AlertType.outing => AppColors.outing,
         AlertType.invitation => AppColors.primary,
       };
 
   Color _alertSurface(AlertType t) => switch (t) {
-        AlertType.fall => AppColors.dangerSurface,
-        AlertType.sos => AppColors.dangerSurface,
-        AlertType.heartRateAbnormal => AppColors.warningSurface,
+        AlertType.fall || AlertType.vitalIssue || AlertType.manualAlert => AppColors.dangerSurface,
+        AlertType.heartRateAbnormal || AlertType.breathRateAbnormal => AppColors.warningSurface,
         AlertType.inactivity => const Color(0xFFF5F5F5),
         AlertType.outing => AppColors.outingSurface,
         AlertType.invitation => AppColors.primarySurface,
       };
 
   IconData _alertIcon(AlertType t) => switch (t) {
-        AlertType.fall => Icons.warning_rounded,
-        AlertType.sos => Icons.warning_rounded,
-        AlertType.heartRateAbnormal => Icons.info_outline,
+        AlertType.fall || AlertType.vitalIssue => Icons.warning_rounded,
+        AlertType.manualAlert => Icons.pan_tool_rounded,
+        AlertType.heartRateAbnormal => Icons.favorite_border,
+        AlertType.breathRateAbnormal => Icons.air,
         AlertType.inactivity => Icons.info_outline,
         AlertType.outing => Icons.exit_to_app,
         AlertType.invitation => Icons.person_add_outlined,

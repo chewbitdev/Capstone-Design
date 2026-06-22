@@ -44,6 +44,35 @@ final deviceStatusProvider = FutureProvider((ref) async {
   return ref.watch(dependentRepositoryProvider).getDeviceStatus(userId);
 });
 
+final eventHistoryProvider =
+    FutureProvider<List<EmergencyEventModel>>((ref) async {
+  final userId = await ref.watch(userIdProvider.future);
+  if (userId == null) return [];
+  return ref.watch(dependentRepositoryProvider).getEventHistory(userId);
+});
+
+// 데모 모드 전용: 낙상 이벤트를 런타임에 추가하기 위한 StateNotifier
+class _DemoEventHistoryNotifier extends StateNotifier<List<EmergencyEventModel>> {
+  _DemoEventHistoryNotifier() : super([]);
+
+  void addFallEvent() {
+    state = [
+      EmergencyEventModel(
+        id: DateTime.now().millisecondsSinceEpoch,
+        eventType: 'FALL',
+        status: 'PENDING',
+        createdAt: DateTime.now(),
+      ),
+      ...state,
+    ];
+  }
+}
+
+final demoEventHistoryProvider =
+    StateNotifierProvider<_DemoEventHistoryNotifier, List<EmergencyEventModel>>(
+  (_) => _DemoEventHistoryNotifier(),
+);
+
 Future<void> inviteGuardian({
   required int wardId,
   required String name,

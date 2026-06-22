@@ -12,8 +12,10 @@ class AuthStorage {
     required String accessToken,
     String? refreshToken,
   }) async {
+    await _storage.delete(key: _keyAccessToken);
     await _storage.write(key: _keyAccessToken, value: accessToken);
     if (refreshToken != null) {
+      await _storage.delete(key: _keyRefreshToken);
       await _storage.write(key: _keyRefreshToken, value: refreshToken);
     }
   }

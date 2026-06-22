@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/notifications/fcm_service.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../auth/presentation/pages/login_page.dart';
+import '../../data/demo/guardian_demo_data.dart';
 import '../../domain/entities/ward.dart';
+import '../../domain/entities/emergency_alert.dart';
 import '../providers/guardian_provider.dart';
 import '../widgets/ward_status_card.dart';
 import 'alert_history_page.dart';
@@ -18,19 +21,46 @@ class CaregiverHomePage extends ConsumerStatefulWidget {
 
 class _CaregiverHomePageState extends ConsumerState<CaregiverHomePage> {
   Timer? _refreshTimer;
+  Timer? _demoFallTimer;
+  // -1 = 아직 초기값 미설정 (첫 로드 시 오발동 방지)
+  int _lastUnreadCount = -1;
+  // 데모: 10초 후 낙상 전환 상태
+  bool _demoFallActive = false;
 
   @override
   void initState() {
     super.initState();
-    // 30초마다 피보호자 목록 + 알림 수 자동 갱신
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      _refresh();
-    });
+    if (!kGuardianDemoMode) {
+      _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+        _refresh();
+      });
+    } else {
+      // 데모: 10초 후 김복순 낙상 + 알림 발송
+      _demoFallTimer = Timer(const Duration(seconds: 10), () {
+        if (!mounted) return;
+        FcmService.showNotification(
+          title: '[심각] 낙상 감지 — 김복순',
+          body: '피보호자 김복순님의 낙상이 감지되었습니다.',
+        );
+        ref.read(alertsProvider.notifier).addAlert(
+          EmergencyAlert(
+            id: 'demo_fall_${DateTime.now().millisecondsSinceEpoch}',
+            wardId: '1',
+            wardName: '김복순',
+            type: AlertType.fall,
+            message: '낙상이 감지되었습니다',
+            occurredAt: DateTime.now(),
+          ),
+        );
+        setState(() => _demoFallActive = true);
+      });
+    }
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _demoFallTimer?.cancel();
     super.dispose();
   }
 
@@ -68,11 +98,66 @@ class _CaregiverHomePageState extends ConsumerState<CaregiverHomePage> {
     );
   }
 
+  // 데모: 낙상 발생 후 피보호자 목록 (김복순 emergency 전환)
+  List<Ward> get _demoWards {
+    final base = GuardianDemoData.wards;
+    if (!_demoFallActive) return base;
+    return base.map((w) {
+      if (w.id == '1') {
+        return Ward(
+          id: w.id, name: w.name,
+          phoneNumber: w.phoneNumber,
+          relationship: w.relationship, age: w.age,
+          status: WardStatus.emergency,
+          lastUpdated: DateTime.now(),
+          sleepTime: w.sleepTime, activityTime: w.activityTime, outingTime: w.outingTime,
+        );
+      }
+      return w;
+    }).toList();
+  }
+
+  // 데모: 낙상 발생 후 알림 목록
+  List<EmergencyAlert> get _demoAlerts {
+    if (!_demoFallActive) return [];
+    return [
+      EmergencyAlert(
+        id: 'demo_fall',
+        wardId: '1',
+        wardName: '김복순',
+        type: AlertType.fall,
+        message: '낙상이 감지되었습니다',
+        occurredAt: DateTime.now(),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
-    final wards = ref.watch(wardsProvider);
-    final alerts = ref.watch(activeAlertsProvider);
-    final unreadCount = ref.watch(unreadCountProvider).valueOrNull ?? alerts.length;
+    final wards = kGuardianDemoMode ? _demoWards : ref.watch(wardsProvider);
+    final alerts = kGuardianDemoMode ? _demoAlerts : ref.watch(activeAlertsProvider);
+    final unreadCount = kGuardianDemoMode
+        ? alerts.where((a) => !a.isResolved).length
+        : (ref.watch(unreadCountProvider).valueOrNull ?? alerts.length);
+
+    // 실제 모드: 읽지 않은 알림이 새로 생기면 로컬 푸시 알림 표시
+    if (!kGuardianDemoMode) {
+      ref.listen(unreadCountProvider, (_, next) {
+        final count = next.valueOrNull ?? 0;
+        if (_lastUnreadCount == -1) {
+          _lastUnreadCount = count;
+          return;
+        }
+        if (count > _lastUnreadCount) {
+          final newCount = count - _lastUnreadCount;
+          FcmService.showNotification(
+            title: '긴급 알림',
+            body: '새로운 응급 상황이 $newCount건 발생했습니다.',
+          );
+        }
+        _lastUnreadCount = count;
+      });
+    }
 
     final emergencyCount = wards.where((w) => w.status == WardStatus.emergency).length;
     final warningCount = wards.where((w) => w.status == WardStatus.warning).length;

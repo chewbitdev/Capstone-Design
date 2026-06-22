@@ -11,10 +11,10 @@ import '../models/guardian_model.dart';
 const bool kDemoMode = false;
 
 // ── 시나리오 선택 (아래 중 하나만 활성화) ──────────────────────
-const _Scenario kScenario = _Scenario.heartIssue;
+// const _Scenario kScenario = _Scenario.normal;
 // const _Scenario kScenario = _Scenario.heartIssue;
 // const _Scenario kScenario = _Scenario.breathIssue;
-// const _Scenario kScenario = _Scenario.fall;
+const _Scenario kScenario = _Scenario.fall;
 // const _Scenario kScenario = _Scenario.offline;
 
 enum _Scenario { normal, heartIssue, breathIssue, fall, offline }

@@ -186,8 +186,10 @@ class _AlertCard extends StatelessWidget {
 
   Color _alertColor(AlertType t) => switch (t) {
         AlertType.fall => AppColors.danger,
-        AlertType.sos => AppColors.danger,
+        AlertType.vitalIssue => AppColors.danger,
+        AlertType.manualAlert => AppColors.danger,
         AlertType.heartRateAbnormal => AppColors.warning,
+        AlertType.breathRateAbnormal => AppColors.warning,
         AlertType.inactivity => AppColors.statusOffline,
         AlertType.outing => AppColors.outing,
         AlertType.invitation => AppColors.primary,
@@ -195,8 +197,10 @@ class _AlertCard extends StatelessWidget {
 
   Color _alertSurface(AlertType t) => switch (t) {
         AlertType.fall => AppColors.dangerSurface,
-        AlertType.sos => AppColors.dangerSurface,
+        AlertType.vitalIssue => AppColors.dangerSurface,
+        AlertType.manualAlert => AppColors.dangerSurface,
         AlertType.heartRateAbnormal => AppColors.warningSurface,
+        AlertType.breathRateAbnormal => AppColors.warningSurface,
         AlertType.inactivity => const Color(0xFFF5F5F5),
         AlertType.outing => AppColors.outingSurface,
         AlertType.invitation => AppColors.primarySurface,
@@ -204,8 +208,10 @@ class _AlertCard extends StatelessWidget {
 
   IconData _alertIcon(AlertType t) => switch (t) {
         AlertType.fall => Icons.warning_rounded,
-        AlertType.sos => Icons.warning_rounded,
-        AlertType.heartRateAbnormal => Icons.info_outline,
+        AlertType.vitalIssue => Icons.warning_rounded,
+        AlertType.manualAlert => Icons.pan_tool_rounded,
+        AlertType.heartRateAbnormal => Icons.favorite_border,
+        AlertType.breathRateAbnormal => Icons.air,
         AlertType.inactivity => Icons.info_outline,
         AlertType.outing => Icons.exit_to_app,
         AlertType.invitation => Icons.person_add_outlined,

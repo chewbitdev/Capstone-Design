@@ -13,9 +13,10 @@ import '../../domain/entities/emergency_alert.dart';
 const bool kGuardianDemoMode = false;
 
 // ── 시나리오 선택 ──────────────────────────────────────────────
-const _GScenario kGuardianScenario = _GScenario.multipleIssues;
-// const _GScenario kGuardianScenario = _GScenario.normal;
+// 데모: 앱 시작 시 normal → 10초 후 singleEmergency(낙상)로 동적 전환
+const _GScenario kGuardianScenario = _GScenario.normal;
 // const _GScenario kGuardianScenario = _GScenario.singleEmergency;
+// const _GScenario kGuardianScenario = _GScenario.multipleIssues;
 // const _GScenario kGuardianScenario = _GScenario.allOffline;
 
 enum _GScenario { normal, singleEmergency, multipleIssues, allOffline }

@@ -16,6 +16,22 @@ class EmergencyEventModel {
         id: json['id'] as int,
         eventType: json['eventType'] as String,
         status: json['status'] as String,
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: _parseDate(json['createdAt']),
       );
+
+  static DateTime _parseDate(dynamic value) {
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    if (value is List && value.length >= 3) {
+      return DateTime(
+        value[0] as int,
+        value[1] as int,
+        value[2] as int,
+        value.length > 3 ? value[3] as int : 0,
+        value.length > 4 ? value[4] as int : 0,
+      );
+    }
+    return DateTime.now();
+  }
 }

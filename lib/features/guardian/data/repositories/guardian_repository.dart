@@ -3,6 +3,7 @@ import '../../../../core/network/api_client.dart';
 import '../../domain/entities/ward.dart';
 import '../../domain/entities/emergency_alert.dart';
 import '../../domain/entities/biometric_data.dart';
+import '../../domain/entities/vital_stats.dart';
 import '../models/ward_detail_model.dart';
 import '../models/notification_model.dart';
 import '../models/event_detail_model.dart';
@@ -102,6 +103,18 @@ class GuardianRepository {
     await _dio.patch('/api/v1/notifications/$notificationId/read');
   }
 
+  // ── 생체 통계 ──────────────────────────────────────────────────────────────
+
+  /// GET /api/v1/guardians/me/users/{userId}/stats?type=HEART|BREATH&period=TODAY|WEEK|MONTH
+  Future<VitalStats> getVitalStats(int userId, String type, String period) async {
+    final response = await _dio.get(
+      '/api/v1/guardians/me/users/$userId/stats',
+      queryParameters: {'type': type, 'period': period},
+    );
+    final data = response.data as Map<String, dynamic>;
+    return VitalStats.fromJson(data);
+  }
+
   // ── 초대 ───────────────────────────────────────────────────────────────────
 
   /// GET /api/v1/guardians/me/invitations
@@ -128,7 +141,15 @@ class GuardianRepository {
 
   Ward _cardToWard(Map<String, dynamic> card) {
     final statusStr = card['status'] as String? ?? 'NORMAL';
-    final status = switch (statusStr) {
+    final hr = (card['heartRate'] as num?)?.toInt() ?? 0;
+    final br = (card['breathRate'] as num?)?.toInt() ?? 0;
+
+    // 센서가 데이터를 보내지 않으면 백엔드보다 먼저 오프라인으로 처리
+    final effectiveStatus = (hr == 0 && br == 0 && statusStr != 'EMERGENCY')
+        ? 'OFFLINE'
+        : statusStr;
+
+    final status = switch (effectiveStatus) {
       'EMERGENCY' => WardStatus.emergency,
       'WARNING' => WardStatus.warning,
       'AWAY' => WardStatus.outing,
@@ -144,7 +165,7 @@ class GuardianRepository {
     return Ward(
       id: card['userId'].toString(),
       name: card['name'] as String? ?? '',
-      phoneNumber: '',
+      phoneNumber: card['phone'] as String? ?? '',
       relationship: card['relation'] as String? ?? '',
       status: status,
       lastUpdated: lastUpdated,
@@ -169,8 +190,9 @@ class GuardianRepository {
     final type = switch (eventType) {
       'FALL' => AlertType.fall,
       'HEART_ISSUE' => AlertType.heartRateAbnormal,
-      'BREATH_ISSUE' => AlertType.heartRateAbnormal,
-      'SOS' => AlertType.sos,
+      'BREATH_ISSUE' => AlertType.breathRateAbnormal,
+      'VITAL_ISSUE' => AlertType.vitalIssue,
+      'MANUAL_ALERT' => AlertType.manualAlert,
       _ => AlertType.fall,
     };
     final isResolved = (alert['status'] as String?) == 'RESOLVED';
@@ -188,7 +210,9 @@ class GuardianRepository {
 
   DateTime? _parseDate(dynamic value) {
     if (value == null) return null;
-    if (value is String) return DateTime.tryParse(value);
+    if (value is String) {
+      return DateTime.tryParse(value);
+    }
     if (value is List && value.length >= 3) {
       return DateTime(
         value[0] as int, value[1] as int, value[2] as int,

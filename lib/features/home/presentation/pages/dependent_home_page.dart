@@ -3,12 +3,15 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../notification/presentation/pages/notification_center_page.dart';
 import '../../../guardian/presentation/pages/guardian_register_page.dart';
 import '../../../auth/presentation/pages/login_page.dart';
 import '../../../../core/auth/auth_storage.dart';
+import '../../../../core/notifications/fcm_service.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../data/demo/dependent_demo_data.dart';
+import '../../data/models/guardian_model.dart';
 import '../providers/dependent_home_provider.dart';
 
 class DependentHomePage extends ConsumerStatefulWidget {
@@ -19,20 +22,27 @@ class DependentHomePage extends ConsumerStatefulWidget {
 }
 
 class _DependentHomePageState extends ConsumerState<DependentHomePage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
   bool _demoEmergency = false;
   bool _showNotification = false;
+  int _demoUnreadCount = 0;
   Timer? _demoTimer;
   Timer? _vitalTimer;
+  Timer? _sseCheckTimer;
   int _heartRate = 74;
   int _breathRate = 16;
   final _random = Random();
+  DateTime? _lastVitalAt;
+  bool _sseStale = true;
+  int? _lastHeartRate;
+  int? _lastBreathRate;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -41,30 +51,47 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
+    if (!kDemoMode) {
+      _sseCheckTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        final stale = _lastVitalAt == null ||
+            DateTime.now().difference(_lastVitalAt!) > const Duration(seconds: 5);
+        if (stale != _sseStale) setState(() => _sseStale = stale);
+      });
+    }
+
     if (kDemoMode) {
       // 실시간 생체 데이터 변동 (1.5초마다)
       _vitalTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) {
         if (!mounted) return;
         setState(() {
           if (_demoEmergency) {
-            _heartRate = 125 + _random.nextInt(10);  // 125~134
-            _breathRate = 24 + _random.nextInt(5);   // 24~28
+            // 낙상 후 — 심박 급등 + 호흡 불규칙
+            _heartRate = 138 + _random.nextInt(18);  // 138~155
+            _breathRate = 28 + _random.nextInt(8);   // 28~35
           } else {
+            // 정상 — 안정적인 수치
             _heartRate = 72 + _random.nextInt(6);    // 72~77
             _breathRate = 15 + _random.nextInt(3);   // 15~17
           }
         });
       });
 
-      // 6초 후 응급 전환
-      _demoTimer = Timer(const Duration(seconds: 6), () {
+      // 10초 후 낙상 응급 전환 + 로컬 알림
+      _demoTimer = Timer(const Duration(seconds: 10), () {
         if (!mounted) return;
+        FcmService.showNotification(
+          title: '[심각] 낙상 감지',
+          body: '낙상이 감지되었습니다. 보호자에게 알림을 전송했습니다.',
+        );
+        ref.read(demoEventHistoryProvider.notifier).addFallEvent();
         setState(() {
           _demoEmergency = true;
           _showNotification = true;
+          _demoUnreadCount = 1;
         });
         _pulseController.repeat(reverse: true);
-        Timer(const Duration(seconds: 6), () {
+        Timer(const Duration(seconds: 30), () {
           if (!mounted) return;
           setState(() => _showNotification = false);
         });
@@ -74,20 +101,168 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _demoTimer?.cancel();
     _vitalTimer?.cancel();
+    _sseCheckTimer?.cancel();
     _pulseController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !kDemoMode) {
+      // 포그라운드 복귀 시 SSE 스트림 및 상태 리셋
+      ref.invalidate(vitalsStreamProvider);
+      ref.invalidate(deviceStatusProvider);
+      ref.invalidate(emergencyEventProvider);
+      setState(() {
+        _lastVitalAt = null;
+        _sseStale = true;
+      });
+    }
   }
 
   String _eventTypeLabel(String? type) => switch (type) {
         'FALL' => '낙상 감지',
         'HEART_ISSUE' => '심박 이상',
         'BREATH_ISSUE' => '호흡 이상',
+        'VITAL_ISSUE' => '심박·호흡 이상',
+        'MANUAL_ALERT' => '도움 요청',
         'INACTIVITY' => '미활동 감지',
-        'SOS' => 'SOS 신호',
         _ => '이상 감지',
       };
+
+  String _eventTypeTitle(String? type) => switch (type) {
+        'FALL' => '[심각] 낙상 감지',
+        'HEART_ISSUE' => '[주의] 심박수 이상',
+        'BREATH_ISSUE' => '[주의] 호흡수 이상',
+        'VITAL_ISSUE' => '[심각] 심박수·호흡수 이상',
+        'MANUAL_ALERT' => '도움 요청 전송됨',
+        _ => '응급 상황 감지',
+      };
+
+  String _eventTypeBody(String? type) => switch (type) {
+        'FALL' => '낙상이 감지되었습니다. 보호자에게 알림을 전송했습니다.',
+        'HEART_ISSUE' => '심박수가 정상 범위를 벗어났습니다. 보호자에게 알림을 전송했습니다.',
+        'BREATH_ISSUE' => '호흡수가 정상 범위를 벗어났습니다. 보호자에게 알림을 전송했습니다.',
+        'VITAL_ISSUE' => '심박수와 호흡수에 동시에 이상이 감지되었습니다. 보호자에게 알림을 전송했습니다.',
+        'MANUAL_ALERT' => '도움 요청이 보호자에게 전송되었습니다.',
+        _ => '응급 상황이 감지되어 보호자에게 알림을 전송했습니다.',
+      };
+
+  String _demoNotificationMessage() {
+    final type = DependentDemoData.emergencyType;
+    return switch (type) {
+      'FALL' => '낙상이 감지되었습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
+      'HEART_ISSUE' => '심박수 이상 감지 — ${_heartRate}bpm\n보호자에게 자동으로 알림을 전송했습니다.',
+      'BREATH_ISSUE' => '호흡수 이상 감지 — ${_breathRate}rpm\n보호자에게 자동으로 알림을 전송했습니다.',
+      _ => '응급 상황이 감지되었습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
+    };
+  }
+
+  String _liveNotificationMessage() {
+    final type = ref.read(emergencyEventProvider).valueOrNull?.eventType;
+    return switch (type) {
+      'FALL' => '낙상이 감지되었습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
+      'HEART_ISSUE' => '심박수 이상 감지 — ${_heartRate}bpm\n보호자에게 자동으로 알림을 전송했습니다.',
+      'BREATH_ISSUE' => '호흡수 이상 감지 — ${_breathRate}rpm\n보호자에게 자동으로 알림을 전송했습니다.',
+      'VITAL_ISSUE' => '심박수·호흡수 동시 이상 감지\n보호자에게 자동으로 알림을 전송했습니다.',
+      'MANUAL_ALERT' => '도움 요청이 보호자에게 전송되었습니다.',
+      _ => '응급 상황이 감지되었습니다.\n보호자에게 자동으로 알림을 전송했습니다.',
+    };
+  }
+
+  Future<void> _call(String number) async {
+    final uri = Uri(scheme: 'tel', path: number);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Future<void> _callGuardian(
+      BuildContext context, List<GuardianModel> guardians) async {
+    if (guardians.isEmpty) {
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('보호자 없음'),
+          content: const Text('등록된 보호자가 없습니다.\n먼저 보호자를 초대해 주세요.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // 주 보호자가 있으면 바로 전화
+    final primary = guardians.firstWhere(
+      (g) => g.isPrimary,
+      orElse: () => guardians.first,
+    );
+
+    if (guardians.length == 1 || primary.isPrimary) {
+      await _call(primary.phone);
+      return;
+    }
+
+    // 여러 보호자가 있고 주 보호자가 없으면 선택 시트
+    if (!context.mounted) return;
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '보호자 선택',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ...guardians.map(
+              (g) => ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                  child: Text(
+                    g.name.isNotEmpty ? g.name[0] : '?',
+                    style: const TextStyle(color: AppColors.primaryGreen),
+                  ),
+                ),
+                title: Text('${g.name} (${g.relation})'),
+                subtitle: Text(g.phone),
+                trailing: const Icon(Icons.phone, color: AppColors.primaryGreen),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _call(g.phone);
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _showLogoutDialog(BuildContext context) async {
     final ok = await showDialog<bool>(
@@ -130,19 +305,44 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
     final vitalsAsync = ref.watch(vitalsStreamProvider);
     final guardiansAsync = ref.watch(guardiansProvider);
     final deviceAsync = ref.watch(deviceStatusProvider);
+    final historyAsync = ref.watch(eventHistoryProvider);
+    final unreadCount = kDemoMode
+        ? _demoUnreadCount
+        : (historyAsync.valueOrNull?.where((e) => e.status == 'PENDING').length ?? 0);
 
-    // 실제 응급 이벤트 감지 시 애니메이션 트리거
+    // SSE vital 수신 시 타임스탬프 및 마지막 값 갱신
+    if (!kDemoMode) {
+      ref.listen(vitalsStreamProvider, (_, next) {
+        if (next.hasValue && next.valueOrNull != null) {
+          _lastVitalAt = DateTime.now();
+          final hr = next.valueOrNull?.heartRate;
+          final br = next.valueOrNull?.breathRate;
+          if (hr != null && hr != 0) _lastHeartRate = hr;
+          if (br != null && br != 0) _lastBreathRate = br;
+          if (_sseStale) setState(() => _sseStale = false);
+        }
+      });
+    }
+
+    // 실제 응급 이벤트 감지 시 애니메이션 + 로컬 알림 트리거
     if (!kDemoMode) {
       ref.listen(emergencyEventProvider, (prev, next) {
         final hasEmergency = next.valueOrNull != null;
         final hadEmergency = prev?.valueOrNull != null;
         if (hasEmergency && !hadEmergency && mounted) {
+          final event = next.valueOrNull;
+          if (event != null) {
+            FcmService.showNotification(
+              title: _eventTypeTitle(event.eventType),
+              body: _eventTypeBody(event.eventType),
+            );
+          }
           setState(() {
             _demoEmergency = true;
             _showNotification = true;
           });
           _pulseController.repeat(reverse: true);
-          Timer(const Duration(seconds: 8), () {
+          Timer(const Duration(seconds: 30), () {
             if (mounted) setState(() => _showNotification = false);
           });
         } else if (!hasEmergency && hadEmergency && mounted) {
@@ -162,15 +362,21 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
     final displayName = kDemoMode
         ? DependentDemoData.name
         : (profileAsync.valueOrNull?.name ?? '사용자');
+    final _hrVal = vitalsAsync.valueOrNull?.heartRate;
+    final _brVal = vitalsAsync.valueOrNull?.breathRate;
     final heartRate = kDemoMode
         ? _heartRate.toString()
-        : vitalsAsync.valueOrNull?.heartRate?.toString() ?? '--';
+        : (_hrVal != null && _hrVal != 0
+            ? _hrVal.toString()
+            : (_lastHeartRate != null ? _lastHeartRate.toString() : '--'));
     final breathRate = kDemoMode
         ? _breathRate.toString()
-        : vitalsAsync.valueOrNull?.breathRate?.toString() ?? '--';
+        : (_brVal != null && _brVal != 0
+            ? _brVal.toString()
+            : (_lastBreathRate != null ? _lastBreathRate.toString() : '--'));
 
     // SSE 데이터가 실시간으로 오는 중이면 심박·호흡 센서 연결됨으로 판단
-    final sseActive = !kDemoMode && vitalsAsync.hasValue && vitalsAsync.valueOrNull != null;
+    final sseActive = !kDemoMode && !_sseStale && vitalsAsync.hasValue && vitalsAsync.valueOrNull != null;
     final sseHasHeart = sseActive && (vitalsAsync.valueOrNull?.heartRate != null);
 
     final deviceStatus = deviceAsync.valueOrNull;
@@ -216,11 +422,39 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.black87),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const NotificationCenterPage()),
-            ),
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined,
+                    color: Colors.black87),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => const NotificationCenterPage()),
+                ),
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                      color: AppColors.danger,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$unreadCount',
+                        style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           IconButton(
             icon: const Icon(Icons.account_circle_outlined, color: Colors.black87),
@@ -235,6 +469,7 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
           ref.invalidate(guardiansProvider);
           ref.invalidate(emergencyEventProvider);
           ref.invalidate(deviceStatusProvider);
+          ref.invalidate(eventHistoryProvider);
         },
         color: AppColors.primaryGreen,
         child: CustomScrollView(
@@ -263,7 +498,7 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
                         subLabel: '응급 신고',
                         icon: Icons.local_hospital_rounded,
                         color: AppColors.alertRed,
-                        onPressed: () {},
+                        onPressed: () => _call('119'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -273,7 +508,12 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
                         subLabel: '즉시 연락',
                         icon: Icons.phone_in_talk_rounded,
                         color: AppColors.primaryGreen,
-                        onPressed: () {},
+                        onPressed: () => _callGuardian(
+                          context,
+                          kDemoMode
+                              ? DependentDemoData.guardians
+                              : (guardiansAsync.valueOrNull ?? []),
+                        ),
                       ),
                     ),
                   ],
@@ -457,7 +697,9 @@ class _DependentHomePageState extends ConsumerState<DependentHomePage>
             child: Material(
               color: Colors.transparent,
               child: _EmergencyNotificationBanner(
-                message: '심박수 이상 감지 — ${_heartRate}bpm\n보호자에게 자동으로 알림을 전송했습니다.',
+                message: kDemoMode
+                    ? _demoNotificationMessage()
+                    : _liveNotificationMessage(),
                 onDismiss: () => setState(() => _showNotification = false),
               ),
             ),
